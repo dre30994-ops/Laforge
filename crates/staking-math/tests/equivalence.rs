@@ -10,7 +10,8 @@ use staking_math::*;
 
 const START: u64 = 0;
 const USERS: usize = 4;
-const T50K: u128 = 50_000_000_000;
+const T35K: u128 = 35_000_000_000; // 35,000 tokens @ 6dp (minimum stake)
+const FUNDED_200M: u128 = 200_000_000_000_000;
 
 #[derive(Debug, Clone)]
 enum Op {
@@ -23,18 +24,24 @@ enum Op {
 
 fn op_strategy() -> impl Strategy<Value = Op> {
     prop_oneof![
-        3 => (0..USERS, T50K..(T50K * 40)).prop_map(|(u, a)| Op::Stake(u, a)),
+        3 => (0..USERS, T35K..(T35K * 40)).prop_map(|(u, a)| Op::Stake(u, a)),
         2 => (0..USERS, 1u8..=100).prop_map(|(u, p)| Op::Unstake(u, p)),
         2 => (0..USERS).prop_map(Op::Claim),
         1 => (0..USERS).prop_map(Op::Compound),
     ]
 }
 
+/// Helper: create a funded and started pool.
+fn funded_started_sim(funded: u128) -> BruteSim {
+    let mut sim = BruteSim::new(START, USERS);
+    sim.fund(funded).unwrap();
+    sim.start().unwrap();
+    sim
+}
+
 /// Drive a sequence of operations, checking invariants after every step.
 fn run(ops: &[Op], gaps: &[u64]) -> Result<BruteSim, String> {
-    let mut sim = BruteSim::new(START, USERS);
-    sim.fund(TOTAL_REWARD_POOL)
-        .map_err(|e| format!("fund: {e:?}"))?;
+    let mut sim = funded_started_sim(FUNDED_200M);
 
     let mut t = START;
     for (i, op) in ops.iter().enumerate() {
@@ -116,12 +123,13 @@ proptest! {
     /// Weight must always equal the explicit sum, at any instant.
     #[test]
     fn weight_invariant_holds_at_arbitrary_instants(
-        stakes in prop::collection::vec(T50K..(T50K * 100), 1..USERS),
+        stakes in prop::collection::vec(T35K..(T35K * 100), 1..USERS),
         offsets in prop::collection::vec(0u64..(4 * 86_400), 1..USERS),
-        probe in 0u64..(20 * 86_400),
+        probe in 0u64..(14 * 86_400),
     ) {
         let mut p = RefPool::new(START, USERS);
-        p.fund(TOTAL_REWARD_POOL).unwrap();
+        p.fund(FUNDED_200M).unwrap();
+        p.start().unwrap();
 
         let mut events: Vec<(u64, usize, u128)> = stakes
             .iter()
@@ -154,7 +162,8 @@ fn extreme_stake_does_not_wrap() {
     assert!(weight(u128::MAX, 1).is_err());
 
     let mut p = RefPool::new(START, 1);
-    p.fund(TOTAL_REWARD_POOL).unwrap();
+    p.fund(FUNDED_200M).unwrap();
+    p.start().unwrap();
     p.stake(0, huge, START).unwrap();
     p.advance(14 * 86_400).unwrap();
     // Sole staker with an absurd balance: still solvent, still no panic.
@@ -181,19 +190,19 @@ fn accrual_reports_overflow_instead_of_truncating() {
 #[test]
 fn full_fourteen_day_timeline_drains_to_dust() {
     const DAY: u64 = 86_400;
-    let mut sim = BruteSim::new(START, USERS);
-    sim.fund(TOTAL_REWARD_POOL).unwrap();
+    let mut sim = funded_started_sim(FUNDED_200M);
+    let r0 = sim.pool.base_rate;
 
-    sim.stake(0, T50K * 4, 0).unwrap();
-    sim.stake(1, T50K * 10, 6 * 3_600).unwrap();
+    sim.stake(0, T35K * 4, 0).unwrap();
+    sim.stake(1, T35K * 10, 6 * 3_600).unwrap();
     sim.claim(0, 2 * DAY).unwrap();
-    sim.stake(2, T50K * 2, 2 * DAY + 1_800).unwrap();
+    sim.stake(2, T35K * 2, 2 * DAY + 1_800).unwrap();
     sim.compound(1, 3 * DAY).unwrap();
-    sim.unstake(0, T50K, 5 * DAY).unwrap();
-    sim.stake(3, T50K * 20, 7 * DAY).unwrap();
+    sim.unstake(0, T35K, 5 * DAY).unwrap();
+    sim.stake(3, T35K * 20, 7 * DAY).unwrap();
     sim.claim(2, 9 * DAY).unwrap();
     sim.compound(3, 11 * DAY).unwrap();
-    sim.unstake(1, T50K * 5, 12 * DAY).unwrap();
+    sim.unstake(1, T35K * 5, 12 * DAY).unwrap();
 
     // Everyone exits at the end.
     for u in 0..USERS {
@@ -203,8 +212,8 @@ fn full_fourteen_day_timeline_drains_to_dust() {
     sim.pool.check_all().unwrap();
 
     let p = &sim.pool;
-    assert_eq!(p.total_emitted, R0 * DENOM);
-    assert_eq!(TOTAL_REWARD_POOL - p.total_emitted, EMISSION_DUST);
+    assert_eq!(p.total_emitted, r0 * DENOM);
+    assert_eq!(FUNDED_200M - p.total_emitted, emission_dust(FUNDED_200M));
 
     let distributed = p.total_distributed();
     let undistributed = p.total_emitted - distributed - p.unallocated;
@@ -225,7 +234,7 @@ fn full_fourteen_day_timeline_drains_to_dust() {
     println!("rounding residue    {:>18}", undistributed);
     println!(
         "emission dust       {:>18}",
-        TOTAL_REWARD_POOL - p.total_emitted
+        FUNDED_200M - p.total_emitted
     );
 
     // Everything emitted is either paid out, parked as unallocated, or lost to
@@ -236,4 +245,31 @@ fn full_fourteen_day_timeline_drains_to_dust() {
         undistributed < 1_000_000,
         "rounding residue too large: {undistributed}"
     );
+}
+
+/// Test with a smaller deposit (10M) to prove the model is deposit-agnostic.
+#[test]
+fn full_timeline_with_10m_deposit() {
+    const DAY: u64 = 86_400;
+    const FUNDED_10M: u128 = 10_000_000_000_000;
+
+    let mut sim = BruteSim::new(START, 2);
+    sim.fund(FUNDED_10M).unwrap();
+    sim.start().unwrap();
+
+    sim.stake(0, T35K * 2, 0).unwrap();
+    sim.stake(1, T35K * 4, DAY).unwrap();
+    sim.claim(0, 7 * DAY).unwrap();
+    sim.compound(1, 10 * DAY).unwrap();
+
+    for u in 0..2 {
+        sim.claim(u, 14 * DAY).unwrap();
+    }
+    sim.assert_equivalence().unwrap();
+    sim.pool.check_all().unwrap();
+
+    let p = &sim.pool;
+    let r0 = p.base_rate;
+    assert_eq!(p.total_emitted, r0 * DENOM);
+    assert_eq!(FUNDED_10M - p.total_emitted, emission_dust(FUNDED_10M));
 }

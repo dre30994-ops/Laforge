@@ -2,7 +2,8 @@
 //!
 //! All token amounts are in **base units**. The figures here assume 6 decimals
 //! (pump.fun standard); the on-chain program reads decimals from the mint at
-//! init, so only [`R0`] and [`MIN_STAKE`] need adjusting for a different mint.
+//! init, so only [`MIN_STAKE`] and [`MIN_FUNDING`] need adjusting for a
+//! different mint.
 //!
 //! # Exactness
 //!
@@ -17,6 +18,15 @@
 //! hourly steps would give `DENOM = 1906.5`, a non-integer, destroying this
 //! property. Tenure is separately on hourly steps, which is fine because the
 //! tenure `/72` cancels in every share computation.
+//!
+//! # Discretionary funding model
+//!
+//! The base emission rate `r₀` is **not** a compile-time constant. It is
+//! derived at `start_pool` as `funded ÷ DENOM`, and re-derived on each top-up.
+//! The 14-day end date is fixed at start and never moves; top-ups only raise
+//! the rate.
+
+use crate::error::{Checked, MathResult};
 
 /// One emission period: 20 minutes. 72 periods per day.
 pub const PERIOD_SECONDS: u64 = 1_200;
@@ -52,34 +62,30 @@ pub const PERIODS_PER_EMISSION_STEP: u128 = 18;
 pub const PERIODS_PER_TENURE_STEP: u128 = 3;
 
 /// Total period-units across the full 14-day program: `315 + 1_584`.
-pub const DENOM: u128 = 1_899;
-
-/// Base emission rate per 20-minute period, in base units at 6 decimals.
 ///
-/// `floor(200_000_000e6 / 1_899)`. The floor is what creates the permanent
-/// 1,730 base-unit dust: `1_899 * R0 = 199_999_999_998_270`.
-pub const R0: u128 = 105_318_588_730;
-
-/// Nominal reward pool: 200,000,000 tokens (20% of a 1B supply).
-pub const TOTAL_REWARD_POOL: u128 = 200_000_000_000_000;
-
-/// Base units that can never be emitted, due to the [`R0`] integer division.
-pub const EMISSION_DUST: u128 = 1_730;
+/// The base rate is derived as `r₀ = funded ÷ DENOM`. Dust per single
+/// funding event is exactly `funded mod DENOM`.
+pub const DENOM: u128 = 1_899;
 
 /// Nominal program duration in days.
 pub const DURATION_DAYS: u64 = 14;
 
-/// Hourly checkpoint slots: 30 days of hourly boundaries.
+/// Hourly checkpoint slots: 16 days of hourly boundaries (with buffer over
+/// the fixed 336 needed for 14 days).
 ///
-/// This is the hard ceiling on `end_ts` extension via top-ups.
-pub const CHECKPOINT_CAPACITY: usize = 720;
+/// Full history, absolute indexing. **Not** a ring buffer.
+pub const CHECKPOINT_CAPACITY: usize = 384;
 
-/// Cohort-maturity slots: `720 + 72 + buffer`, so a deposit landing in the
+/// Cohort-maturity slots: `384 + 72 + 8` buffer, so a deposit landing in the
 /// last checkpoint bucket still has an in-bounds maturity index.
-pub const MATURING_CAPACITY: usize = 800;
+pub const MATURING_CAPACITY: usize = 464;
 
-/// Default minimum stake: 50,000 tokens. Admin-adjustable, deposits only.
-pub const MIN_STAKE: u128 = 50_000_000_000;
+/// Default minimum stake: 35,000 tokens at 6 decimals. Admin-adjustable,
+/// enforced on deposits only.
+pub const MIN_STAKE: u128 = 35_000_000_000;
+
+/// Minimum funding to activate (start) a pool: 10,000,000 tokens at 6 decimals.
+pub const MIN_FUNDING: u128 = 10_000_000_000_000;
 
 /// Fixed-point scale for the accumulated-reward-per-weight accumulator `A`.
 pub const ACC_SCALE: u128 = 1_000_000_000_000_000_000;
@@ -91,10 +97,25 @@ pub const SECONDS_PER_DAY: u64 = 86_400;
 
 /// Suggested `max_steps` per crank transaction.
 ///
-/// A worst-case 720-boundary catch-up at roughly 300 CU per iteration is about
-/// 216k CU, over the 200k default, so a full catch-up must span ~3 chained
-/// transactions.
+/// At roughly 300 CU per iteration, a full 384-boundary catch-up is about
+/// 115k CU, so two transactions at 250 steps each covers worst-case.
 pub const DEFAULT_MAX_CRANK_STEPS: u64 = 250;
+
+/// Derive the base emission rate from the funded amount.
+///
+/// `r₀ = funded ÷ DENOM` base units per 20-minute period.
+///
+/// Dust (the unreachable remainder) is `funded mod DENOM`.
+#[inline]
+pub fn derive_base_rate(funded: u128) -> MathResult<u128> {
+    funded.c_div(DENOM)
+}
+
+/// Compute the dust (unreachable remainder) for a given funding amount.
+#[inline]
+pub fn emission_dust(funded: u128) -> u128 {
+    funded % DENOM
+}
 
 #[cfg(test)]
 mod tests {
@@ -138,16 +159,39 @@ mod tests {
     }
 
     #[test]
-    fn r0_is_floor_of_pool_over_denom() {
-        assert_eq!(R0, TOTAL_REWARD_POOL / DENOM);
-        assert_eq!(TOTAL_REWARD_POOL - DENOM * R0, EMISSION_DUST);
+    fn derive_base_rate_for_known_deposits() {
+        // 10M tokens at 6 decimals
+        let r0_10m = derive_base_rate(10_000_000_000_000).unwrap();
+        assert_eq!(r0_10m, 5_265_929_436);
+
+        // 50M tokens at 6 decimals
+        let r0_50m = derive_base_rate(50_000_000_000_000).unwrap();
+        assert_eq!(r0_50m, 26_329_647_182);
+
+        // 200M tokens at 6 decimals
+        let r0_200m = derive_base_rate(200_000_000_000_000).unwrap();
+        assert_eq!(r0_200m, 105_318_588_730);
+    }
+
+    #[test]
+    fn dust_is_funded_mod_denom() {
+        assert_eq!(emission_dust(10_000_000_000_000), 10_000_000_000_000 % DENOM);
+        assert_eq!(emission_dust(200_000_000_000_000), 200_000_000_000_000 % DENOM);
+        // For 200M: dust = 200_000_000_000_000 mod 1_899 = 1_730
+        assert_eq!(emission_dust(200_000_000_000_000), 1_730);
     }
 
     #[test]
     fn maturing_capacity_covers_last_bucket() {
         let last = CHECKPOINT_CAPACITY as u64 - 1;
         let maturity = last + TENURE_RAMP_STEPS;
-        assert_eq!(maturity, 791);
+        assert_eq!(maturity, 455);
         assert!((maturity as usize) < MATURING_CAPACITY);
+    }
+
+    #[test]
+    fn min_funding_derives_a_nonzero_rate() {
+        let r0 = derive_base_rate(MIN_FUNDING).unwrap();
+        assert!(r0 > 0);
     }
 }

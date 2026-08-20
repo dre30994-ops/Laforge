@@ -5,20 +5,26 @@
 //!
 //! # Why a cumulative numerator
 //!
-//! Per-step emission is `18 * R0 * (12 + s) / 12`, which is *not* divisible by
-//! 12 for every `s`. Flooring each interval independently would leak dust on
-//! every crank and let the total drift away from 200M.
+//! Per-step emission is `18 * base_rate * (12 + s) / 12`, which is *not*
+//! divisible by 12 for every `s`. Flooring each interval independently would
+//! leak dust on every crank and let the total drift away from the pool.
 //!
 //! Instead we accumulate an exact integer **numerator** (period-units x 12) and
 //! floor exactly once, against the cumulative total:
 //!
 //! ```text
-//! cumulative_emitted(t) = R0 * cumulative_numerator(t) / 12
+//! cumulative_emitted(base_rate, t) = base_rate * cumulative_numerator(t) / 12
 //! ```
 //!
 //! Interval emission is then a difference of two cumulative values, so nothing
-//! drifts, and the 14-day total lands on `R0 * 1_899` exactly because the total
-//! numerator `22_788` is divisible by 12.
+//! drifts, and the 14-day total lands on `base_rate * DENOM` exactly because
+//! the total numerator `22_788` is divisible by 12.
+//!
+//! # Discretionary funding
+//!
+//! `base_rate` is derived at runtime as `funded ÷ DENOM`. It is passed in to
+//! every function rather than referenced as a constant. This makes the math
+//! layer agnostic to the deposit size.
 
 use crate::constants::*;
 use crate::error::{Checked, MathError, MathResult};
@@ -30,7 +36,7 @@ use crate::error::{Checked, MathError, MathResult};
 /// * `step` >= 12 -> 24 (2.0x, plateau)
 ///
 /// Note the cap is `min(step, 12)`, **not** `min(step, 11)`. Capping at 11
-/// would plateau at 1.9167x and the 14-day total would fall short of 200M.
+/// would plateau at 1.9167x and the 14-day total would fall short.
 #[inline]
 pub const fn emission_mult_numerator(step: u64) -> u128 {
     let capped = if step > EMISSION_RAMP_STEPS {
@@ -55,9 +61,11 @@ pub const fn emission_step_at(elapsed: u64) -> u64 {
 
 /// Total emission for one complete 6-hour step, in base units.
 ///
-/// Exact: `18 * num / 12` reduces to `3 * num / 2`, and [`R0`] is even.
-pub fn emission_for_step(step: u64) -> MathResult<u128> {
-    R0.c_mul(PERIODS_PER_EMISSION_STEP)?
+/// Exact: `18 * num / 12` reduces to `3 * num / 2`, and when `base_rate` is
+/// even the result is exact. When odd, the floor is applied once here.
+pub fn emission_for_step(base_rate: u128, step: u64) -> MathResult<u128> {
+    base_rate
+        .c_mul(PERIODS_PER_EMISSION_STEP)?
         .c_mul(emission_mult_numerator(step))?
         .c_div(MULT_DENOM)
 }
@@ -66,6 +74,7 @@ pub fn emission_for_step(step: u64) -> MathResult<u128> {
 /// 20-minute periods.
 ///
 /// Units are period-units x [`MULT_DENOM`]. Divide by 12 to get period-units.
+/// This is rate-independent: it depends only on the schedule shape.
 pub fn cumulative_numerator(elapsed: u64) -> MathResult<u128> {
     let periods = (elapsed / PERIOD_SECONDS) as u128;
     let full_steps = periods / PERIODS_PER_EMISSION_STEP;
@@ -96,68 +105,46 @@ pub fn cumulative_numerator(elapsed: u64) -> MathResult<u128> {
 /// A step function: increases only on 20-minute period boundaries. Flooring
 /// happens once here, against the cumulative total, so interval differences
 /// never drift.
-pub fn cumulative_emitted(elapsed: u64) -> MathResult<u128> {
-    R0.c_mul(cumulative_numerator(elapsed)?)?.c_div(MULT_DENOM)
+pub fn cumulative_emitted(base_rate: u128, elapsed: u64) -> MathResult<u128> {
+    base_rate
+        .c_mul(cumulative_numerator(elapsed)?)?
+        .c_div(MULT_DENOM)
 }
 
 /// Emission between two elapsed offsets. `to` must be >= `from`.
-pub fn emission_between(from: u64, to: u64) -> MathResult<u128> {
+pub fn emission_between(base_rate: u128, from: u64, to: u64) -> MathResult<u128> {
     if to < from {
         return Err(MathError::Underflow);
     }
-    cumulative_emitted(to)?.c_sub(cumulative_emitted(from)?)
+    cumulative_emitted(base_rate, to)?.c_sub(cumulative_emitted(base_rate, from)?)
 }
 
-/// Whole periods needed to emit `target` numerator units.
-fn periods_for_numerator(target: u128) -> MathResult<u128> {
-    let ramp_total = PERIODS_PER_EMISSION_STEP.c_mul(RAMP_NUMERATOR_SUM)?;
-    let ramp_periods = PERIODS_PER_EMISSION_STEP.c_mul(EMISSION_RAMP_STEPS as u128)?;
-
-    if target >= ramp_total {
-        // Past the ramp: every further period is worth PLATEAU_NUMERATOR.
-        let rest = target.c_sub(ramp_total)?;
-        return ramp_periods.c_add(rest.c_div(PLATEAU_NUMERATOR)?);
-    }
-
-    // Inside the ramp: walk at most 12 steps.
-    let mut consumed = 0u128;
-    let mut periods = 0u128;
-    for s in 0..EMISSION_RAMP_STEPS {
-        let num = emission_mult_numerator(s);
-        let step_total = PERIODS_PER_EMISSION_STEP.c_mul(num)?;
-        if consumed.c_add(step_total)? > target {
-            let leftover = target.c_sub(consumed)?;
-            return periods.c_add(leftover.c_div(num)?);
-        }
-        consumed = consumed.c_add(step_total)?;
-        periods = periods.c_add(PERIODS_PER_EMISSION_STEP)?;
-    }
-    Ok(periods)
-}
-
-/// Program duration in seconds that `funded` base units buys, at the fixed
-/// base rate. Floors, so the pool can never be over-drawn.
+/// Remaining period-units from `elapsed` seconds to the end of the 14-day
+/// program. Used for re-pricing after top-ups.
 ///
-/// This is the `funded / rate` derivation: duration is derived, never fixed at
-/// init. 200,000,000 tokens yields exactly 14 days.
-pub fn duration_secs_for_funding(funded: u128) -> MathResult<u64> {
-    let target = funded.c_mul(MULT_DENOM)?.c_div(R0)?;
-    let periods = periods_for_numerator(target)?;
-    let secs = periods.c_mul(PERIOD_SECONDS as u128)?;
-    u64::try_from(secs).map_err(|_| MathError::Overflow)
+/// Returns the count in MULT_DENOM-scaled units (divide by 12 for raw
+/// period-units). At t=0 this equals `DENOM * MULT_DENOM = 22_788`.
+pub fn remaining_period_units(elapsed: u64) -> MathResult<u128> {
+    let total = cumulative_numerator(DURATION_DAYS * SECONDS_PER_DAY)?;
+    let so_far = cumulative_numerator(elapsed)?;
+    total.c_sub(so_far)
 }
 
-/// Emission over a whole day, 1-indexed. Convenience for the golden table.
-pub fn emission_for_day(day: u64) -> MathResult<u128> {
+/// Emission over a whole day, 1-indexed. Convenience for golden tables.
+pub fn emission_for_day(base_rate: u128, day: u64) -> MathResult<u128> {
     if day == 0 {
         return Err(MathError::Underflow);
     }
-    emission_between((day - 1) * SECONDS_PER_DAY, day * SECONDS_PER_DAY)
+    emission_between(base_rate, (day - 1) * SECONDS_PER_DAY, day * SECONDS_PER_DAY)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Use 200M for backward-compat validation of the math.
+    const FUNDED_200M: u128 = 200_000_000_000_000;
+    const R0_200M: u128 = FUNDED_200M / DENOM; // 105_318_588_730
 
     #[test]
     fn multiplier_numerator_ramps_then_plateaus() {
@@ -177,28 +164,27 @@ mod tests {
     /// The plateau must be exactly 2x the base rate, or the pool never drains.
     #[test]
     fn plateau_is_exactly_double_base() {
-        let base = emission_for_step(0).unwrap();
-        let plateau = emission_for_step(12).unwrap();
+        let base = emission_for_step(R0_200M, 0).unwrap();
+        let plateau = emission_for_step(R0_200M, 12).unwrap();
         assert_eq!(plateau, base * 2);
-        assert_eq!(base, R0 * 18);
+        assert_eq!(base, R0_200M * 18);
     }
 
     #[test]
     fn step_emission_is_exact_despite_odd_numerators() {
-        // 18 * 13 / 12 = 19.5 periods worth; R0 is even so this stays exact.
         for s in 0..14 {
             let num = emission_mult_numerator(s);
-            let got = emission_for_step(s).unwrap();
-            assert_eq!(got * MULT_DENOM, R0 * PERIODS_PER_EMISSION_STEP * num);
+            let got = emission_for_step(R0_200M, s).unwrap();
+            assert_eq!(got * MULT_DENOM, R0_200M * PERIODS_PER_EMISSION_STEP * num);
         }
     }
 
     #[test]
     fn cumulative_counts_whole_periods_only() {
-        assert_eq!(cumulative_emitted(0).unwrap(), 0);
+        assert_eq!(cumulative_emitted(R0_200M, 0).unwrap(), 0);
         // Nothing accrues until the first full 20-minute period closes.
-        assert_eq!(cumulative_emitted(PERIOD_SECONDS - 1).unwrap(), 0);
-        assert_eq!(cumulative_emitted(PERIOD_SECONDS).unwrap(), R0);
+        assert_eq!(cumulative_emitted(R0_200M, PERIOD_SECONDS - 1).unwrap(), 0);
+        assert_eq!(cumulative_emitted(R0_200M, PERIOD_SECONDS).unwrap(), R0_200M);
     }
 
     #[test]
@@ -207,7 +193,10 @@ mod tests {
         let num = cumulative_numerator(three_days).unwrap();
         assert_eq!(num, 3_780); // 18 * 210
         assert_eq!(num / MULT_DENOM, 315); // period-units
-        assert_eq!(cumulative_emitted(three_days).unwrap(), R0 * 315);
+        assert_eq!(
+            cumulative_emitted(R0_200M, three_days).unwrap(),
+            R0_200M * 315
+        );
     }
 
     #[test]
@@ -219,32 +208,51 @@ mod tests {
     }
 
     #[test]
-    fn two_hundred_million_buys_exactly_fourteen_days() {
-        let secs = duration_secs_for_funding(TOTAL_REWARD_POOL).unwrap();
-        assert_eq!(secs, DURATION_DAYS * SECONDS_PER_DAY);
-        assert_eq!(secs, 1_209_600);
+    fn remaining_period_units_at_start_equals_full_program() {
+        let remaining = remaining_period_units(0).unwrap();
+        assert_eq!(remaining, DENOM * MULT_DENOM);
+        assert_eq!(remaining, 22_788);
     }
 
     #[test]
-    fn one_plateau_day_costs_one_days_emission() {
-        let full = TOTAL_REWARD_POOL;
-        let day15 = duration_secs_for_funding(full + 15_165_876_777_120).unwrap();
-        assert_eq!(day15, 15 * SECONDS_PER_DAY);
+    fn remaining_period_units_at_end_is_zero() {
+        let remaining = remaining_period_units(DURATION_DAYS * SECONDS_PER_DAY).unwrap();
+        assert_eq!(remaining, 0);
     }
 
-    /// Funding below the ramp total must resolve inside the ramp.
     #[test]
-    fn partial_ramp_funding_lands_inside_ramp() {
-        let ramp_total = R0 * 315;
-        let secs = duration_secs_for_funding(ramp_total / 2).unwrap();
-        assert!(secs < 3 * SECONDS_PER_DAY, "got {secs}");
-        assert!(secs > 0);
-        // And it must not over-promise.
-        assert!(cumulative_emitted(secs).unwrap() <= ramp_total / 2);
+    fn remaining_plus_elapsed_equals_total() {
+        for hour in 0..=(DURATION_DAYS * 24) {
+            let elapsed = hour * TENURE_STEP_SECONDS;
+            let so_far = cumulative_numerator(elapsed).unwrap();
+            let remaining = remaining_period_units(elapsed).unwrap();
+            assert_eq!(so_far + remaining, 22_788, "mismatch at hour {hour}");
+        }
     }
 
     #[test]
     fn emission_between_rejects_reversed_range() {
-        assert_eq!(emission_between(100, 0), Err(MathError::Underflow));
+        assert_eq!(
+            emission_between(R0_200M, 100, 0),
+            Err(MathError::Underflow)
+        );
+    }
+
+    /// Verify that base_rate scaling is linear: 2x deposit -> 2x emission.
+    #[test]
+    fn emission_scales_linearly_with_base_rate() {
+        let r0_10m = derive_base_rate(10_000_000_000_000).unwrap();
+        let r0_50m = derive_base_rate(50_000_000_000_000).unwrap();
+
+        let day1_10m = emission_for_day(r0_10m, 1).unwrap();
+        let day1_50m = emission_for_day(r0_50m, 1).unwrap();
+
+        // 50M / 10M = 5x, but due to integer division in derive_base_rate
+        // the ratio is only approximately 5x (off by at most DENOM base units).
+        let ratio = day1_50m / day1_10m;
+        assert!(ratio == 4 || ratio == 5, "ratio was {ratio}");
+        // More precise: the absolute difference from exact 5x is bounded.
+        let exact_5x = day1_10m * 5;
+        assert!(day1_50m.abs_diff(exact_5x) < DENOM * 100);
     }
 }

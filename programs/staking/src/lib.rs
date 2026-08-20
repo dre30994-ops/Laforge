@@ -8,7 +8,7 @@
 //! `stake`, `unstake`, `claim`, `compound`, `crank`, admin) lands in Tasks 3-11.
 
 use anchor_lang::prelude::*;
-use staking_math::{emission_mult_bps, tenure_mult_bps, DENOM, R0};
+use staking_math::{derive_base_rate, emission_mult_bps, tenure_mult_bps, DENOM, MIN_FUNDING};
 
 declare_id!("9w1J2JrEuLqN4dL8NEUAdW3aubzzTXpSc9pG3mYdEgUL");
 
@@ -24,14 +24,15 @@ pub mod staking {
         state.bump = ctx.bumps.state;
 
         // Exercise the linked math so it cannot be optimised away.
-        state.base_rate = R0 as u64;
+        let r0 = derive_base_rate(MIN_FUNDING).unwrap_or(0);
+        state.base_rate = r0 as u64;
         state.plateau_bps = emission_mult_bps(12) as u16;
         state.mature_tenure_bps = tenure_mult_bps(72) as u16;
 
         msg!(
             "ping value={} r0={} denom={} plateau={}bps tenure_max={}bps",
             value,
-            R0,
+            r0,
             DENOM,
             state.plateau_bps,
             state.mature_tenure_bps
@@ -79,8 +80,10 @@ pub enum StakingError {
     BelowMinimumStake,
     #[msg("Pool is stale; crank it to the current slot first")]
     PoolStale,
-    #[msg("Top-up would extend the end date past the schedule capacity")]
-    CapacityExceeded,
     #[msg("Pool is paused")]
     Paused,
+    #[msg("Pool has not been started yet")]
+    NotStarted,
+    #[msg("Funding is below the minimum required to start")]
+    BelowMinimumFunding,
 }

@@ -23,9 +23,14 @@
 //!
 //! **Rounding always floors toward the pool.** Emission floors once against a
 //! cumulative numerator; accrual floors once per settlement. The pool can
-//! therefore never be over-drawn, and a permanent
-//! [`EMISSION_DUST`](constants::EMISSION_DUST) of 1,730 base units is
-//! unreachable by design.
+//! therefore never be over-drawn, and a permanent dust of `funded mod DENOM`
+//! base units is unreachable by design.
+//!
+//! # Discretionary funding model
+//!
+//! The base rate `r₀ = funded ÷ DENOM` is derived at runtime. The 14-day end
+//! date is fixed at `start_pool`; top-ups after start re-price the remaining
+//! schedule upward (rate increases, end date stays).
 
 #![forbid(unsafe_code)]
 
@@ -47,8 +52,8 @@ pub mod sim;
 pub use accrual::{accrual, accrual_bracket, advance_acc, Snapshot};
 pub use constants::*;
 pub use emission::{
-    cumulative_emitted, cumulative_numerator, duration_secs_for_funding, emission_between,
-    emission_for_day, emission_for_step, emission_mult_bps, emission_mult_numerator,
+    cumulative_emitted, cumulative_numerator, emission_between, emission_for_day,
+    emission_for_step, emission_mult_bps, emission_mult_numerator, remaining_period_units,
 };
 pub use error::{MathError, MathResult};
 pub use weight::{

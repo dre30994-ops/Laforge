@@ -8,10 +8,10 @@
 //! # Checkpoints are full history, never windowed
 //!
 //! `(A_n, G_n)` pairs are stored for every hourly boundary of the program's
-//! maximum life (30 days, [`CHECKPOINT_CAPACITY`] slots). A ring buffer would
-//! be a correctness bug, not an optimisation: a position that matures on day 3
-//! and then sits idle until day 14 still needs `G_{n0+72}` to be readable when
-//! it finally settles. Overwrite it and the position becomes unpayable.
+//! life ([`CHECKPOINT_CAPACITY`] slots). A ring buffer would be a correctness
+//! bug, not an optimisation: a position that matures on day 3 and then sits
+//! idle until day 14 still needs `G_{n0+72}` to be readable when it finally
+//! settles. Overwrite it and the position becomes unpayable.
 //!
 //! # Tenure ticks on global hourly boundaries
 //!
@@ -20,10 +20,16 @@
 //! the floor is what makes `G_{n0}` already recorded at deposit time, which is
 //! what keeps accrual O(1). The cost is that the first tick can arrive up to an
 //! hour early; that is bounded and deliberate.
+//!
+//! # Discretionary funding and re-pricing
+//!
+//! `base_rate = funded ÷ DENOM` is computed once at `start()` and re-derived
+//! on each top-up via `fund()` after start. The 14-day end date is fixed at
+//! start and never moves. Top-ups raise the rate monotonically.
 
 use crate::accrual::{accrual, advance_acc, Snapshot};
 use crate::constants::*;
-use crate::emission::{cumulative_emitted, duration_secs_for_funding};
+use crate::emission::cumulative_emitted;
 use crate::error::{Checked, MathError, MathResult};
 use crate::weight::{average_mult_bps, capped_steps, tenure_mult_bps, weight, weighted_deposit_ts};
 
@@ -33,9 +39,13 @@ pub enum PoolError {
     Paused,
     ZeroAmount,
     BelowMinimumStake,
+    BelowMinimumFunding,
     InsufficientStake,
     CapacityExceeded,
     NotEnded,
+    NotStarted,
+    AlreadyStarted,
+    RateDecreased,
 }
 
 impl From<MathError> for PoolError {
@@ -63,7 +73,9 @@ pub struct RefPool {
     pub start_ts: u64,
     pub end_ts: u64,
     pub funded: u128,
+    pub base_rate: u128,
     pub min_stake: u128,
+    pub started: bool,
     pub paused: bool,
 
     pub total_staked: u128,
@@ -95,9 +107,11 @@ impl RefPool {
     pub fn new(start_ts: u64, users: usize) -> Self {
         Self {
             start_ts,
-            end_ts: start_ts,
+            end_ts: start_ts + DURATION_DAYS * SECONDS_PER_DAY,
             funded: 0,
+            base_rate: 0,
             min_stake: MIN_STAKE,
+            started: false,
             paused: false,
             total_staked: 0,
             total_weight: 0,
@@ -117,29 +131,58 @@ impl RefPool {
         }
     }
 
-    /// Maximum program life the checkpoint array can represent.
-    pub const fn max_duration_secs() -> u64 {
-        CHECKPOINT_CAPACITY as u64 * TENURE_STEP_SECONDS
+    /// Credit rewards pre-start. Does not derive the rate yet.
+    pub fn fund(&mut self, amount: u128) -> R<()> {
+        if amount == 0 {
+            return Err(PoolError::ZeroAmount);
+        }
+        self.funded = self.funded.c_add(amount)?;
+
+        // If already started, re-price: derive a new (higher) base_rate from
+        // remaining funds over remaining period-units.
+        if self.started {
+            self.reprice()?;
+        }
+        Ok(())
     }
 
-    /// Credit rewards and re-derive `end_ts` from `funded / rate`.
+    /// Start the pool. Requires funded >= MIN_FUNDING. Derives base_rate and
+    /// fixes end_ts = start_ts + 14 days.
+    pub fn start(&mut self) -> R<()> {
+        if self.started {
+            return Err(PoolError::AlreadyStarted);
+        }
+        if self.funded < MIN_FUNDING {
+            return Err(PoolError::BelowMinimumFunding);
+        }
+        self.base_rate = derive_base_rate(self.funded)?;
+        self.started = true;
+        // end_ts is already set to start_ts + 14 days in new()
+        Ok(())
+    }
+
+    /// Re-price after a post-start top-up.
     ///
-    /// `end_ts` is monotonically non-decreasing and may never exceed the
-    /// checkpoint capacity. The 3-day emission ramp is anchored to `start_ts`
-    /// and never re-runs; top-ups only append plateau periods.
-    pub fn fund(&mut self, amount: u128) -> R<()> {
-        let new_funded = self.funded.c_add(amount)?;
-        let dur = duration_secs_for_funding(new_funded)?;
-        if dur > Self::max_duration_secs() {
-            // Reject cleanly without corrupting state.
-            return Err(PoolError::CapacityExceeded);
+    /// New rate = remaining_funds / remaining_period_units.
+    /// Rate must be monotonically non-decreasing.
+    fn reprice(&mut self) -> R<()> {
+        let elapsed = self.last_ts.saturating_sub(self.start_ts);
+        let remaining_funds = self.funded.c_sub(self.total_emitted)?;
+        let remaining_num = crate::emission::remaining_period_units(elapsed)?;
+        if remaining_num == 0 {
+            // Past end — no re-pricing possible.
+            return Ok(());
         }
-        let new_end = self.start_ts.checked_add(dur).ok_or(MathError::Overflow)?;
-        if new_end < self.end_ts {
-            return Err(PoolError::Math(MathError::Underflow));
+        // new_rate = remaining_funds * MULT_DENOM / remaining_num / MULT_DENOM
+        //          = remaining_funds / (remaining_num / MULT_DENOM)
+        // But to avoid nested division, we do:
+        // remaining_period_units returns MULT_DENOM-scaled units.
+        // base_rate = remaining_funds * MULT_DENOM / remaining_num
+        let new_rate = remaining_funds.c_mul(MULT_DENOM)?.c_div(remaining_num)?;
+        if new_rate < self.base_rate {
+            return Err(PoolError::RateDecreased);
         }
-        self.funded = new_funded;
-        self.end_ts = new_end;
+        self.base_rate = new_rate;
         Ok(())
     }
 
@@ -174,8 +217,8 @@ impl RefPool {
         if c1 <= c0 {
             return Ok(0);
         }
-        let e0 = cumulative_emitted(c0.saturating_sub(self.start_ts))?;
-        let e1 = cumulative_emitted(c1.saturating_sub(self.start_ts))?;
+        let e0 = cumulative_emitted(self.base_rate, c0.saturating_sub(self.start_ts))?;
+        let e1 = cumulative_emitted(self.base_rate, c1.saturating_sub(self.start_ts))?;
         let emission = e1.c_sub(e0)?;
         if emission == 0 {
             return Ok(0);
@@ -262,11 +305,6 @@ impl RefPool {
         }
 
         // Trailing partial segment (no checkpoint recorded).
-        //
-        // This may only run once every boundary at or before `now` has been
-        // consumed. If `max_steps` cut the walk short, accruing straight to
-        // `now` here would leap over the remaining boundaries and lose their
-        // checkpoints, making partial cranks disagree with a single full crank.
         let next_t = self
             .start_ts
             .checked_add(self.next_boundary * TENURE_STEP_SECONDS)
@@ -371,9 +409,6 @@ impl RefPool {
     /// Ordering is mandatory: remove old weight and cohort entry, apply the
     /// stake-weighted average timestamp, then re-add weight and snapshot.
     fn apply_deposit(&mut self, user: usize, amount: u128, now: u64, enforce_min: bool) -> R<()> {
-        // Validate *before* touching aggregates. On-chain a failed instruction
-        // reverts, but this model mutates in place, so an early return after
-        // remove_weight would silently corrupt the pool.
         let p = self.positions[user].clone();
         let new_amount = p.amount.c_add(amount)?;
         if enforce_min && new_amount < self.min_stake {
@@ -398,6 +433,9 @@ impl RefPool {
     }
 
     pub fn stake(&mut self, user: usize, amount: u128, now: u64) -> R<()> {
+        if !self.started {
+            return Err(PoolError::NotStarted);
+        }
         if self.paused {
             return Err(PoolError::Paused);
         }
@@ -452,6 +490,9 @@ impl RefPool {
     /// Fold pending rewards into principal. Exempt from `min_stake`, and
     /// dilutes tenure by the same weighted-average rule as a fresh deposit.
     pub fn compound(&mut self, user: usize, now: u64) -> R<u128> {
+        if !self.started {
+            return Err(PoolError::NotStarted);
+        }
         if self.paused {
             return Err(PoolError::Paused);
         }

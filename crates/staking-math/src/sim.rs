@@ -67,6 +67,10 @@ impl BruteSim {
         self.pool.fund(amount)
     }
 
+    pub fn start(&mut self) -> Result<(), PoolError> {
+        self.pool.start()
+    }
+
     pub fn users(&self) -> usize {
         self.mirror.len()
     }
