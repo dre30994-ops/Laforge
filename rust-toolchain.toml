@@ -1,0 +1,9 @@
+# Pinned so host builds are reproducible across Windows and WSL.
+#
+# Note: this does not govern the SBF build. `cargo-build-sbf` uses the rustc
+# shipped inside Solana platform-tools (currently v1.52 / rustc 1.89.0),
+# independently of this file.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

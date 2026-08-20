@@ -1,0 +1,21 @@
+[package]
+name = "staking-math"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Pure, checked-integer emission/weight/accrual math for the 14-day staking farm. No Solana dependency."
+
+[features]
+# `model` pulls in the Vec-backed reference pool and brute-force simulator.
+# On by default for host testing; the on-chain program depends on this crate
+# with `default-features = false` so none of it reaches the SBF target.
+default = ["model"]
+model = []
+
+[dependencies]
+
+[dev-dependencies]
+proptest = "1"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,24 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Anchor / Solana
+.anchor/
+test-ledger/
+# Program keypairs live in target/deploy and must never be committed.
+*-keypair.json
+
+# Node / frontend
+node_modules/
+.next/
+out/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
