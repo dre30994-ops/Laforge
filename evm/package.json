@@ -1,0 +1,18 @@
+{
+  "name": "pons-staking-evm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "14-day liquidity-bootstrap staking farm for Pons ERC-20 tokens on Robinhood Chain (EVM L2). Solidity port of the Solana/Anchor program.",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.15"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0"
+  }
+}

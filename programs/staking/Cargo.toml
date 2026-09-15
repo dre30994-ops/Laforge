@@ -16,10 +16,15 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+# Test-only: makes initialize_pool set the operator to the pool authority so
+# integration tests (which cannot hold the hardcoded operator's secret key) can
+# exercise operator-gated funding and the sweep. NEVER enable in production.
+test-operator = []
 
 [dependencies]
 anchor-lang = { workspace = true }
 anchor-spl = { workspace = true }
+bytemuck = { version = "1.25", features = ["min_const_generics", "derive"] }
 # default-features = false keeps the host-only reference model out of the
 # on-chain binary; only constants/emission/weight/accrual are linked.
 staking-math = { workspace = true }

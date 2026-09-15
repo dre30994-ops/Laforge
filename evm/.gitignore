@@ -1,0 +1,9 @@
+# Secrets — never commit deployer keys or RPC creds
+.env
+.env.*
+!.env.example
+
+# Hardhat build output
+node_modules/
+cache/
+artifacts/

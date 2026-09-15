@@ -1,0 +1,17 @@
+[package]
+name = "staking-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+staking-math = { path = "../../crates/staking-math", features = ["model"] }
+solana-program-test = "2.2"
+solana-sdk = "2.2"
+spl-token = "7"
+spl-associated-token-account = "6"
+borsh = "1"
+rand = "0.8"
+sha2 = "0.10"
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
