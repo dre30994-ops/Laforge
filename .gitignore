@@ -1,5 +1,6 @@
 # Rust
 /target/
+**/target/
 **/*.rs.bk
 
 # Anchor / Solana
@@ -16,6 +17,12 @@ dist/
 .env
 .env.local
 *.tsbuildinfo
+
+# Local dev-server logs
+*.log
+dev-server.*
+devrun.*
+devserver.*
 
 # Editors / OS
 .vscode/
