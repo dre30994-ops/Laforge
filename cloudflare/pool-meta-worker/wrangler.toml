@@ -46,4 +46,4 @@ RATE_LIMIT_WINDOW_SECONDS = "60"
 #   RPC_URL         — a JSON-RPC endpoint for the Robinhood/EVM chain.
 #   FACTORY_ADDRESS — the deployed StakingFactory address (0x…).
 RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
-FACTORY_ADDRESS = "0x84ee0716F5Af308Ce3D265962a9237e353fD0c6f"
+FACTORY_ADDRESS = "0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691"

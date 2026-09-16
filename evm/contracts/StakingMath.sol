@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 /// @title StakingMath
-/// @notice Pure emission / weight / accrual math for the 14-day staking farm.
+/// @notice Pure emission / weight / accrual math for the staking farm.
 ///         A faithful Solidity port of the Rust `staking-math` crate.
 ///
 /// All amounts are in base units of the token. Solidity 0.8 has checked
@@ -46,7 +46,7 @@ library StakingMath {
     ///             = `6 * 210 / 12 = 105`.
     /// Plateau (13 days): `13 * 72 * 2 = 1_872`. Total: `105 + 1_872 = 1_977`.
     /// Pools with a shorter duration derive their own denom via
-    /// `denomForDuration` — see the duration-parameterized helpers below.
+    /// `denomForDuration`.
     uint256 internal constant DENOM = 1_977;
     /// Default program duration in days. Pools may choose 1..=MAX_DURATION_DAYS.
     uint256 internal constant DURATION_DAYS = 14;
@@ -88,7 +88,7 @@ library StakingMath {
         return (emissionMultNumerator(step) * BPS) / MULT_DENOM;
     }
 
-    /// Total emission for one complete 6-hour step, in base units.
+    /// Total emission for one complete 2-hour step, in base units.
     function emissionForStep(uint256 baseRate, uint256 step) internal pure returns (uint256) {
         return (baseRate * PERIODS_PER_EMISSION_STEP * emissionMultNumerator(step)) / MULT_DENOM;
     }
@@ -103,7 +103,7 @@ library StakingMath {
 
         uint256 stepsTotal;
         if (fullSteps <= rampSteps) {
-            // sum_{s=0}^{f-1} 18 * (12 + s) = 18 * (12f + f(f-1)/2)
+            // sum_{s=0}^{f-1} 6 * (12 + s) = 6 * (12f + f(f-1)/2)
             uint256 triangular = fullSteps == 0 ? 0 : (fullSteps * (fullSteps - 1)) / 2;
             stepsTotal = PERIODS_PER_EMISSION_STEP * (MULT_DENOM * fullSteps + triangular);
         } else {
@@ -130,7 +130,7 @@ library StakingMath {
     }
 
     /// Remaining period-units (MULT_DENOM-scaled) from `elapsed` to program end.
-    /// At t=0 this equals `DENOM * MULT_DENOM = 22_788`.
+    /// At t=0 this equals `DENOM * MULT_DENOM = 23_724`.
     function remainingPeriodUnits(uint256 elapsed) internal pure returns (uint256) {
         return remainingPeriodUnitsFor(elapsed, DURATION_DAYS);
     }
@@ -140,26 +140,26 @@ library StakingMath {
         return funded / DENOM;
     }
 
-    // ---- Duration-parameterized variants (1..=14 days) --------------------
+    // ---- Duration-parameterized variants (1..=30 days) --------------------
     //
-    // The emission SHAPE is fixed: a 3-day ramp (1.0x -> 2.0x over twelve 6-hour
+    // The emission SHAPE is fixed: a 1-day ramp (1.0x -> 2.0x over twelve 2-hour
     // steps) followed by a flat 2.0x plateau to the end. Only the plateau length
     // flexes with the chosen duration. `cumulativeNumerator` already computes the
     // correct value for any elapsed time (partial ramp, full ramp, plateau), so a
     // pool's total denom is simply the cumulative numerator at its end time.
     //
-    // For durations < 3 days the ramp is truncated (the schedule ends mid-ramp);
+    // For durations < 1 day the ramp is truncated (the schedule ends mid-ramp);
     // the math still holds — such a pool simply never reaches the 2.0x emission
-    // multiplier.
+    // multiplier. Minimum selectable duration is 1 day.
 
     /// Total program period-units (MULT_DENOM-scaled) for a given duration.
-    /// For 14 days this equals `DENOM * MULT_DENOM = 22_788`.
+    /// For 14 days this equals `DENOM * MULT_DENOM = 23_724`.
     function totalNumeratorForDuration(uint256 durationDays) internal pure returns (uint256) {
         return cumulativeNumerator(durationDays * SECONDS_PER_DAY);
     }
 
     /// The per-pool denom (period-units, i.e. MULT_DENOM-divided) for a duration.
-    /// For 14 days this equals DENOM (1_899). Used as `funded / denom` base rate.
+    /// For 14 days this equals DENOM (1_977). Used as `funded / denom` base rate.
     function denomForDuration(uint256 durationDays) internal pure returns (uint256) {
         return totalNumeratorForDuration(durationDays) / MULT_DENOM;
     }
