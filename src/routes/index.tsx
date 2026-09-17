@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import LandingPage from "@/pages/landing";
+import HomePage from "@/pages/index";
 
-export const Route = createFileRoute("/")({ component: LandingPage });
+/** `/` is the cinematic landing — this is the first page Vercel serves. */
+export const Route = createFileRoute("/")({ component: HomePage });

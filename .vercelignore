@@ -1,0 +1,13 @@
+# Next.js leftover — never deploy this; the live app is the Vite root.
+app
+
+# On-chain / rust tooling, not needed for the Vercel frontend.
+evm
+contracts
+programs
+crates
+sbf_probe
+tests
+target
+build_log.txt
+*.md
