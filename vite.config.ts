@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "vite";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -188,18 +188,25 @@ export default {};
 // `0.0.0.0:8080` is the live-preview contract — don't change host/port.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
-export default defineConfig(({ command, isPreview }) => ({
+export default defineConfig(({ command, isPreview, mode }) => {
+  // Load env files (.env, .env.local, .env.[mode]) plus already-set process
+  // env for both the Vite prefixes and the raw PRIVY_APP_ID Vercel stores.
+  const fileEnv = loadEnv(mode, process.cwd(), ["VITE_", "NEXT_PUBLIC_", "PRIVY_"]);
+  const privyAppId =
+    process.env.VITE_PRIVY_APP_ID ||
+    process.env.NEXT_PUBLIC_PRIVY_APP_ID ||
+    process.env.PRIVY_APP_ID ||
+    fileEnv.VITE_PRIVY_APP_ID ||
+    fileEnv.NEXT_PUBLIC_PRIVY_APP_ID ||
+    fileEnv.PRIVY_APP_ID ||
+    "";
+  return {
   envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   define: {
     global: "globalThis",
     // Vercel often stores this as PRIVY_APP_ID (no Vite prefix). Inline it
     // so the client bundle can open the Privy modal.
-    "import.meta.env.VITE_PRIVY_APP_ID": JSON.stringify(
-      process.env.VITE_PRIVY_APP_ID ||
-        process.env.NEXT_PUBLIC_PRIVY_APP_ID ||
-        process.env.PRIVY_APP_ID ||
-        "",
-    ),
+    "import.meta.env.VITE_PRIVY_APP_ID": JSON.stringify(privyAppId),
   },
   server: {
     host: "0.0.0.0",
@@ -255,4 +262,5 @@ export default defineConfig(({ command, isPreview }) => ({
       : []),
     viteReact(),
   ],
-}));
+  };
+});
