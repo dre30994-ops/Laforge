@@ -1,0 +1,7 @@
+{
+  "MarketingDeskModule": {
+    "factory": "0x84ee0716F5Af308Ce3D265962a9237e353fD0c6f",
+    "fee": "60000000000000000n",
+    "feeRecipient": "0xPASTE_TREASURY_ADDRESS_HERE"
+  }
+}
