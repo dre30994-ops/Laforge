@@ -7,7 +7,13 @@
     "node": "22.x"
   },
   "overrides": {
-    "nf3": "0.3.17"
+    "nf3": "0.3.17",
+    "@privy-io/ethereum": {
+      "viem": "$viem"
+    },
+    "@privy-io/js-sdk-core": {
+      "viem": "$viem"
+    }
   },
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",

@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund",
   "buildCommand": "vite build"
 }
