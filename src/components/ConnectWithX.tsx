@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { privyAppId } from "@/lib/privy";
 
@@ -13,43 +14,86 @@ function ConnectWithXButton({
   onClick,
   label,
   disabled,
+  error,
 }: {
   onClick: () => void;
   label: string;
   disabled?: boolean;
+  error?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-xs font-semibold
-                 text-white border border-black/20 disabled:opacity-50"
-      style={{
-        background: "linear-gradient(180deg, #1a1a1a, #0a0a0a)",
-        fontFamily: "var(--font-mono, monospace)",
-      }}
-      aria-label={label}
-      data-testid="connect-with-x"
-    >
-      <XMark className="w-3.5 h-3.5" />
-      {label}
-    </button>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-xs font-semibold
+                   text-white border border-black/20 disabled:opacity-50"
+        style={{
+          background: "linear-gradient(180deg, #1a1a1a, #0a0a0a)",
+          fontFamily: "var(--font-mono, monospace)",
+        }}
+        aria-label={label}
+        data-testid="connect-with-x"
+      >
+        <XMark className="w-3.5 h-3.5" />
+        {label}
+      </button>
+      {error ? (
+        <p className="absolute left-0 top-full mt-1 max-w-[220px] text-[10px] leading-snug text-red-600">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
 function ConnectWithXLive() {
   const { ready, authenticated, login, logout, user } = usePrivy();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const handle = user?.twitter?.username;
-  const label = authenticated ? (handle ? `@${handle}` : "X connected") : "Connect with X";
+  const label = busy
+    ? "Connecting…"
+    : authenticated
+      ? handle
+        ? `@${handle}`
+        : "X connected"
+      : "Connect with X";
 
   return (
     <ConnectWithXButton
-      disabled={!ready}
+      disabled={busy}
       label={label}
+      error={error}
       onClick={() => {
-        if (authenticated) void logout();
-        else void login({ loginMethods: ["twitter"] });
+        void (async () => {
+          setError("");
+          if (authenticated) {
+            setBusy(true);
+            try {
+              await logout();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Could not disconnect X.");
+            } finally {
+              setBusy(false);
+            }
+            return;
+          }
+          if (!ready) {
+            setError("Privy is still loading. Try again in a second.");
+            return;
+          }
+          setBusy(true);
+          try {
+            await login({ loginMethods: ["twitter"] });
+          } catch (e) {
+            const message = e instanceof Error ? e.message : "Could not open X login.";
+            setError(message);
+          } finally {
+            setBusy(false);
+          }
+        })();
       }}
     />
   );
@@ -60,9 +104,8 @@ export function ConnectWithX() {
     return (
       <ConnectWithXButton
         label="Connect with X"
-        onClick={() => {
-          console.warn("Set VITE_PRIVY_APP_ID to enable Connect with X.");
-        }}
+        error="Set PRIVY_APP_ID or VITE_PRIVY_APP_ID on Vercel, then redeploy."
+        onClick={() => undefined}
       />
     );
   }

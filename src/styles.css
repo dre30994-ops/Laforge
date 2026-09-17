@@ -834,6 +834,14 @@ h1, h2, h3, h4 {
   transform: scale(0.96);
 }
 
+/* Privy login modal must sit above ticker, burger, and sound chip. */
+#privy-dialog,
+#privy-modal,
+[data-privy-dialog],
+[id^="privy-"] {
+  z-index: 100000 !important;
+}
+
 .forge-burger {
   position: fixed;
   top: calc(var(--trending-ticker-h, 0px) + 0.7rem);

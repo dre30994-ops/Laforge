@@ -192,6 +192,14 @@ export default defineConfig(({ command, isPreview }) => ({
   envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   define: {
     global: "globalThis",
+    // Vercel often stores this as PRIVY_APP_ID (no Vite prefix). Inline it
+    // so the client bundle can open the Privy modal.
+    "import.meta.env.VITE_PRIVY_APP_ID": JSON.stringify(
+      process.env.VITE_PRIVY_APP_ID ||
+        process.env.NEXT_PUBLIC_PRIVY_APP_ID ||
+        process.env.PRIVY_APP_ID ||
+        "",
+    ),
   },
   server: {
     host: "0.0.0.0",
