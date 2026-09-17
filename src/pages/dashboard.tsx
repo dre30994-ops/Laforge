@@ -1,0 +1,69 @@
+import { TerminalShell } from "@/components/TerminalShell";
+import { HeroMetrics } from "@/components/HeroMetrics";
+import { StakingHero } from "@/components/StakingHero";
+import { RewardChart } from "@/components/RewardChart";
+import { ApyCalculator } from "@/components/ApyCalculator";
+import { PositionStrip } from "@/components/PositionStrip";
+import { CreatePoolButton } from "@/components/CreatePoolButton";
+import { PoolDirectory } from "@/components/PoolDirectory";
+import { ChainSwitch } from "@/components/ChainSwitch";
+import { PoolSearch } from "@/components/PoolSearch";
+import { ImmutableStakeCard } from "@/components/ImmutableStakeCard";
+
+export default function Home() {
+  return (
+    <TerminalShell>
+        <main className="flex-1 min-w-0 px-4 md:px-6 lg:px-8 py-6">
+          <div className="max-w-[1600px] mx-auto space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h1 className="text-xl font-semibold tracking-tight text-hi">
+                  Staking Terminal
+                </h1>
+                <p className="label-term mt-1">
+                  Pools on Robinhood and Ethereum
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <CreatePoolButton />
+                <div className="hidden md:flex items-center gap-2">
+                  <span className="pulse-dot" />
+                  <span className="label-term">Mainnet feed · live</span>
+                </div>
+              </div>
+            </div>
+
+            <PoolSearch />
+
+            <div className="lg:hidden">
+              <ChainSwitch compact />
+            </div>
+
+            <StakingHero />
+
+            <HeroMetrics />
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+              <div className="xl:col-span-2 space-y-6">
+                <RewardChart />
+                <ImmutableStakeCard />
+              </div>
+              <div className="xl:col-span-1">
+                <ApyCalculator />
+              </div>
+            </div>
+
+            <PositionStrip />
+
+            <PoolDirectory />
+
+            <footer className="pt-4 pb-2 text-center">
+              <p className="label-term !tracking-normal !normal-case text-lo">
+                Tenure resets on unstake · rate can rise if the operator tops up
+              </p>
+            </footer>
+          </div>
+        </main>
+    </TerminalShell>
+  );
+}

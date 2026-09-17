@@ -1,6 +1,10 @@
 import { Volume2, VolumeX } from "lucide-react";
 import { useMusic } from "@/components/MusicProvider";
 
+/**
+ * Persistent mute/unmute panel, wired to the shared cross-page music.
+ * Rendered from the root layout so it is on every page, including landing.
+ */
 export function MusicToggle() {
   const { muted, toggleMute } = useMusic();
 

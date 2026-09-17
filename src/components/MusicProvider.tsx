@@ -8,8 +8,23 @@ import {
   useCallback,
 } from "react";
 
+/**
+ * Global background music.
+ *
+ * A single <audio> element lives here in the provider (mounted once in the root
+ * layout), so the track keeps playing seamlessly as the user navigates between
+ * pages instead of restarting on every route change.
+ *
+ * Volume is route-aware:
+ *   • Landing page ("/")   → LANDING_VOLUME
+ *   • Every other page     → half of landing, then another 35% quieter
+ *
+ * Mute is shared via context so the persistent Sound panel can toggle the
+ * same audio element from any page.
+ */
+
 const LANDING_VOLUME = 0.4;
-const OTHER_VOLUME = (LANDING_VOLUME / 2) * 0.65;
+const OTHER_VOLUME = (LANDING_VOLUME / 2) * 0.65; // 35% quieter than the previous terminal level
 
 type MusicContextValue = {
   muted: boolean;
@@ -29,13 +44,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [muted, setMuted] = useState(false);
   const pathname = useRouter().state.location.pathname;
+
   const targetVolume = pathname === "/" ? LANDING_VOLUME : OTHER_VOLUME;
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.volume = targetVolume;
-    audio.play().catch(() => {});
+    audio.play().catch(() => {
+      /* autoplay blocked — will start on first user interaction */
+    });
+
     const startOnGesture = () => {
       audio.play().catch(() => {});
       window.removeEventListener("pointerdown", startOnGesture);
@@ -43,11 +62,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener("pointerdown", startOnGesture);
     window.addEventListener("keydown", startOnGesture);
+
     return () => {
       window.removeEventListener("pointerdown", startOnGesture);
       window.removeEventListener("keydown", startOnGesture);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const audio = audioRef.current;
