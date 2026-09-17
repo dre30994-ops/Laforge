@@ -20,7 +20,7 @@ export default function Home() {
                 <h1 className="text-xl font-semibold tracking-tight text-hi">
                   Staking Terminal
                 </h1>
-                <p className="label-term mt-1">
+                <p className="label-term mt-1" data-testid="protocol-tvl-caption">
                   Pools on Robinhood and Ethereum
                 </p>
               </div>

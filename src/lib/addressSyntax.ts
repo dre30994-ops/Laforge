@@ -7,6 +7,11 @@ export type AddressCheck = {
   warning?: string;
 };
 
+/**
+ * Chain-aware 0x-address check. All supported launch chains are EVM, so the
+ * byte layout is identical — the copy still names the selected chain so a
+ * user who clicked BSC doesn't think they're pasting an Ethereum-only format.
+ */
 export function checkEvmAddress(raw: string, network: EvmNetwork): AddressCheck {
   const value = raw.trim();
   if (!value) return { ok: false };

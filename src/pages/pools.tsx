@@ -11,7 +11,9 @@ export default function PoolsPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h1 className="text-xl font-semibold tracking-tight text-hi">All pools</h1>
-                <p className="label-term mt-1">Robinhood and Ethereum — more chains soon</p>
+                <p className="label-term mt-1" data-testid="protocol-tvl-caption">
+                  Robinhood and Ethereum
+                </p>
               </div>
               <CreatePoolButton />
             </div>

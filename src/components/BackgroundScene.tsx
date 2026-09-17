@@ -16,7 +16,13 @@ function makeParticles(count: number, leftBase: number, leftSpread: number): Par
   }));
 }
 
+/**
+ * Subtle ambient background - dark with slight warm tones.
+ * The settlement.svg is the visual focal point, so this just provides
+ * atmospheric depth around it.
+ */
 export function BackgroundScene() {
+  // Compute particle positions once so renders stay pure and stable.
   const particles = useMemo(
     () => [...makeParticles(8, 5, 20), ...makeParticles(8, 75, 20)],
     []
@@ -24,6 +30,7 @@ export function BackgroundScene() {
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
+      {/* Deep dark base */}
       <div
         className="absolute inset-0"
         style={{
@@ -39,6 +46,8 @@ export function BackgroundScene() {
           `,
         }}
       />
+
+      {/* Very subtle firefly particles at edges only */}
       <div className="absolute inset-0">
         {particles.map((p, i) => (
           <div
@@ -48,6 +57,8 @@ export function BackgroundScene() {
           />
         ))}
       </div>
+
+      {/* Outer vignette */}
       <div
         className="absolute inset-0"
         style={{

@@ -17,13 +17,19 @@ interface ILaforgePool {
 contract MarketingDesk is ReentrancyGuard {
     uint256 public immutable FEE;
     address public immutable FEE_RECIPIENT;
+    /// Factory whose pools this desk accepts. Pools from any other factory revert.
     address public immutable FACTORY;
     uint256 public constant SLOT_SECONDS = 12 hours;
 
     mapping(address => uint256) public unlockedAt;
     mapping(address => uint256) public trendingUntil;
 
-    event MarketingPurchased(address indexed pool, address indexed buyer, uint256 trendingUntil_, bool firstUnlock);
+    event MarketingPurchased(
+        address indexed pool,
+        address indexed buyer,
+        uint256 trendingUntil_,
+        bool firstUnlock
+    );
 
     error ZeroAddress();
     error ZeroFee();
@@ -47,17 +53,24 @@ contract MarketingDesk is ReentrancyGuard {
         return trendingUntil[pool] > block.timestamp;
     }
 
+    /// Pay `FEE` in this chain's native token to unlock (or refresh) Marketing.
+    /// Anyone may pay for a pool created by `FACTORY`. This is a boost, not a stake.
     function buyMarketing(address pool) external payable nonReentrant {
         if (pool == address(0)) revert ZeroAddress();
         if (msg.value != FEE) revert BadFee();
+
         ILaforgePool p = ILaforgePool(pool);
         if (p.factory() != FACTORY) revert UnknownPool();
+
         bool first = unlockedAt[pool] == 0;
         if (first) unlockedAt[pool] = block.timestamp;
+
         uint256 start = trendingUntil[pool] > block.timestamp ? trendingUntil[pool] : block.timestamp;
         uint256 until_ = start + SLOT_SECONDS;
         trendingUntil[pool] = until_;
+
         emit MarketingPurchased(pool, msg.sender, until_, first);
+
         (bool ok,) = FEE_RECIPIENT.call{value: msg.value}("");
         if (!ok) revert FeeTransferFailed();
     }

@@ -1,6 +1,18 @@
 import { publicEnv } from "@/lib/publicEnv";
 import { defineChain } from "viem";
 
+/**
+ * Robinhood Chain — an Arbitrum Orbit EVM L2 (native gas token: ETH).
+ *
+ * Robinhood Chain is not in `viem/chains`, so we build the chain objects with
+ * `defineChain`. These are consumed by the wagmi config (EVM_CHAINS /
+ * wagmiConfig below) and the viem clients in `factoryClient.ts`.
+ *
+ * Network facts (from https://docs.robinhood.com/chain/connecting/):
+ *   mainnet  chainId 4663   rpc https://rpc.mainnet.chain.robinhood.com
+ *   testnet  chainId 46630  rpc https://rpc.testnet.chain.robinhood.com
+ */
+
 export const robinhoodTestnet = defineChain({
   id: 46630,
   name: "Robinhood Chain Testnet",
@@ -42,11 +54,16 @@ export const robinhoodMainnet = defineChain({
   },
 });
 
+/**
+ * The active Robinhood Chain used across the app. Testnet-first per project
+ * decision; set NEXT_PUBLIC_ROBINHOOD_MAINNET=1 to switch to mainnet later.
+ */
 export const robinhoodChain =
   publicEnv("ROBINHOOD_MAINNET") === "1"
     ? robinhoodMainnet
     : robinhoodTestnet;
 
+/** Convenience: the block-explorer base URL for the active chain. */
 export const robinhoodExplorerUrl =
   robinhoodChain.blockExplorers?.default.url ??
   "https://explorer.testnet.chain.robinhood.com";
@@ -65,6 +82,14 @@ export const hyperEvm = defineChain({
   },
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// wagmi config — all supported EVM chains for the connect/stake flows.
+//
+// The connect button connects a wallet; this config declares which chains that
+// wallet may operate on. Robinhood Chain is custom (defineChain above); the rest
+// come from viem/chains. Add a chain here (+ its factory address env) to support
+// it end-to-end.
+// ─────────────────────────────────────────────────────────────────────────────
 import { createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
 import {
@@ -82,6 +107,7 @@ import {
   polygonAmoy,
 } from "wagmi/chains";
 
+/** All EVM chains the app supports, mainnets + testnets. */
 export const EVM_CHAINS = [
   robinhoodMainnet,
   robinhoodTestnet,
@@ -105,6 +131,7 @@ function rpc(name: string) {
   return url ? http(url) : http();
 }
 
+/** wagmi config. Uses each chain's default RPC unless overridden via env. */
 export const wagmiConfig = createConfig({
   chains: EVM_CHAINS,
   connectors: [injected()],

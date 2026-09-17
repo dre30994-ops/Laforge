@@ -1,49 +1,31 @@
-name = "pool-meta-worker"
+name = "laforge-pool-meta"
 main = "src/index.ts"
-compatibility_date = "2024-11-06"
+compatibility_date = "2026-04-01"
 
-# ── KV: stores the pool metadata JSON, keyed by lowercased token address ──
-# The KV namespace is named "Laforge_cloud". Create it with:
-#   wrangler kv namespace create Laforge_cloud
-#   wrangler kv namespace create Laforge_cloud --preview
-# then paste the returned id / preview_id below. `binding` is the name the
-# Worker code uses (keep it as POOL_META); it does not need to match the
-# namespace title.
+# KV holds JSON metadata keyed by lowercased token (and optionally pool) address.
 [[kv_namespaces]]
-binding = "POOL_META"
-id = "2be79e944eb24597a6fad7c565b835d5"
-preview_id = "c7247b1df9bd4c4bac0d0fc965d645e7"
+binding = "META"
+id = "replace-with-kv-namespace-id"
 
-# ── R2: stores pool images ──
-# Create with:  wrangler r2 bucket create laforge-bucket
+# R2 holds raster pool images / banners. Public access is via this worker.
 [[r2_buckets]]
-binding = "POOL_IMAGES"
-bucket_name = "laforge-bucket"
-preview_bucket_name = "laforge-bucket"
+binding = "IMAGES"
+bucket_name = "laforge-pool-images"
 
+# Per-chain factory + RPC. The worker never trusts a client-supplied tier;
+# it resolves factory.poolOf(token) on the matching chain, then pool.tier().
 [vars]
-# Comma-separated list of allowed CORS origins (your app's URLs). Use "*" to
-# allow any origin (fine for public, read-mostly cosmetic data).
-ALLOWED_ORIGINS = "*"
+FACTORY_4663 = "0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691"
+RPC_4663 = "https://rpc.mainnet.chain.robinhood.com"
 
-# Public base URL that serves objects from the R2 bucket. Set this after you
-# either (a) enable the R2 bucket's public r2.dev URL, or (b) attach a custom
-# domain. Example: "https://pub-xxxxxxxx.r2.dev" or "https://img.yourdomain.com".
-# If left blank, images are served back through this Worker at /images/<key>.
-IMAGE_PUBLIC_BASE_URL = "https://pub-15c733788ea0406ebc99bf31bf7071ba.r2.dev"
+FACTORY_1 = "0x84ee0716F5Af308Ce3D265962a9237e353fD0c6f"
+RPC_1 = "https://ethereum.publicnode.com"
 
-# ── Write rate limit (per client IP, fixed window, KV-backed) ──
-# Applies to PUT/POST /pools/:token. Set RATE_LIMIT_MAX to 0 to disable.
-# Note: KV minimum TTL is 60s, so windows below 60s are floored to 60s.
-RATE_LIMIT_MAX = "10"
-RATE_LIMIT_WINDOW_SECONDS = "60"
+FACTORY_8453 = "0x84ee0716F5Af308Ce3D265962a9237e353fD0c6f"
+RPC_8453 = "https://base.publicnode.com"
 
-# ── Marketing-tier gating (server-side verification of banner + social links) ──
-# The Worker only stores/serves a pool's banner + social links if the pool
-# actually paid for the Marketing tier, verified on-chain via eth_call:
-# factory.poolOf(token) -> pool.tier() == 2 (Marketing). Set both to enable.
-# If either is blank, banner/socials are dropped (fail closed).
-#   RPC_URL         — a JSON-RPC endpoint for the Robinhood/EVM chain.
-#   FACTORY_ADDRESS — the deployed StakingFactory address (0x…).
-RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
-FACTORY_ADDRESS = "0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691"
+FACTORY_56 = "0x84ee0716F5Af308Ce3D265962a9237e353fD0c6f"
+RPC_56 = "https://bsc.publicnode.com"
+
+FACTORY_999 = "0x84ee0716F5Af308Ce3D265962a9237e353fD0c6f"
+RPC_999 = "https://rpc.hyperliquid.xyz/evm"

@@ -135,9 +135,45 @@ export const EVM_VISIBLE_NETWORKS: EvmNetworkKey[] = ["robinhood", "ethereum"];
 /** @deprecated use EVM_NETWORK_CATALOG — kept so listPools still fans out every factory. */
 export const EVM_NETWORK_ORDER: EvmNetworkKey[] = EVM_NETWORK_CATALOG;
 
+export function isVisibleNetwork(key: EvmNetworkKey | string | undefined): boolean {
+  if (!key) return false;
+  return (EVM_VISIBLE_NETWORKS as string[]).includes(key);
+}
+
 export const SHOW_SOLANA_IN_SWITCHER = false;
 
 export const PRIMARY_NETWORK: EvmNetworkKey = "robinhood";
+
+export const FACTORY_REGISTRY: Record<
+  number,
+  { key: EvmNetworkKey; factory: string; rpc: string }
+> = {
+  4663: {
+    key: "robinhood",
+    factory: ROBINHOOD_FACTORY,
+    rpc: "https://rpc.mainnet.chain.robinhood.com",
+  },
+  1: {
+    key: "ethereum",
+    factory: SHARED_FACTORY,
+    rpc: "https://ethereum.publicnode.com",
+  },
+  8453: {
+    key: "base",
+    factory: SHARED_FACTORY,
+    rpc: "https://base.publicnode.com",
+  },
+  56: {
+    key: "bsc",
+    factory: SHARED_FACTORY,
+    rpc: "https://bsc.publicnode.com",
+  },
+  999: {
+    key: "hyperevm",
+    factory: SHARED_FACTORY,
+    rpc: "https://rpc.hyperliquid.xyz/evm",
+  },
+};
 
 export function networkByChainId(chainId: number | undefined): EvmNetwork | undefined {
   if (!chainId) return undefined;

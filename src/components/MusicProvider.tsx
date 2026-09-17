@@ -47,6 +47,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const targetVolume = pathname === "/" ? LANDING_VOLUME : OTHER_VOLUME;
 
+  // Start playback once (browsers may block autoplay until a user gesture; the
+  // toggle button and the first interaction will kick it off if so).
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -55,6 +57,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       /* autoplay blocked — will start on first user interaction */
     });
 
+    // Fallback: start on the first user interaction if autoplay was blocked.
     const startOnGesture = () => {
       audio.play().catch(() => {});
       window.removeEventListener("pointerdown", startOnGesture);
@@ -69,11 +72,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Adjust volume whenever the route changes.
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) audio.volume = targetVolume;
   }, [targetVolume]);
 
+  // Keep the element's muted attribute in sync with state.
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) audio.muted = muted;
@@ -82,6 +87,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const toggleMute = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    // Ensure it's playing (covers the autoplay-blocked case), then toggle mute.
     if (audio.paused) audio.play().catch(() => {});
     setMuted((prev) => !prev);
   }, []);

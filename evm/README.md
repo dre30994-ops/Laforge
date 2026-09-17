@@ -1,139 +1,88 @@
-# Pons Staking (EVM) — Robinhood Chain
+# Pons EVM — Hardhat 3 (ESM)
 
-A Solidity port of the Solana/Anchor 14-day liquidity-bootstrap staking farm,
-targeting **Robinhood Chain** (an Arbitrum Orbit EVM L2). Any ERC-20 launched on
-**Pons** can get its own isolated staking pool.
+Hardhat **3.x**, `"type": "module"`, `import` / `export` only. No `require`, no `module.exports`, no `hardhat.config.js`.
 
-The economic model is preserved **exactly** from the original Rust program:
+```
+evm/
+  hardhat.config.ts          # defineConfig + plugins: [hardhatToolboxViem]
+  contracts/                 # StakingMath, StakingPool, StakingFactory
+  contracts/mocks/MockERC20.sol
+  ignition/modules/StakingFactory.ts
+  scripts/deploy.ts
+  test/*.ts                  # node:test + viem
+```
 
-- Global emissions ramp **1.0x → 2.0x** over 12 six-hour steps (3 days), then
-  plateau flat to day 14.
-- Per-user tenure weight ramps **1.0x → 2.0x** over 72 hourly steps (3 days).
-- Stake-weighted average deposit timestamp (anti-gaming dilution).
-- O(1) reward accrual via checkpoint history (`A`, `G`) and cohort maturity
-  buckets.
-- **Configurable per-pool stake and unstake taxes** (each capped at 10%), taken
-  from principal and routed to a launcher-selected treasury. If no treasury is
-  set, both taxes must be zero. Compounding is untaxed.
-- Operator-gated funding; permissionless `sync`, `crank`, and `sweep`.
-- Reward surplus sweep to the operator after the pool has been empty ≥ 3 hours,
-  never touching staker principal or unclaimed rewards.
-- Pause, min-stake adjustment, two-party authority transfer, and
-  withdraw-unallocated after end + fixed 7-day grace.
-
-## Launchpad model (per-pool trust)
-
-Any Pons ERC-20 launcher creates a pool by calling the factory and paying a fixed
-**0.02 ETH** launch fee (forwarded to a hardcoded collector). At creation the
-launcher sets, **immutably**:
-
-- `operator` = the launcher (`msg.sender`): funds rewards, receives sweeps.
-- `treasury` = launcher-selected tax recipient (optional; zero ⇒ no tax).
-- `stakeTaxBps`, `unstakeTaxBps` = per-side taxes, each ≤ 1000 bps (10%).
-- `authority` = the launcher: pool admin.
-
-Each pool is fully isolated: only its own operator can fund it, and its taxes
-flow only to its own treasury.
-
-### Token safety (Option A)
-
-Pools accept only well-behaved ERC-20s. Every transfer **into** the pool
-(`fundRewards`, `stake`) requires the received balance delta to equal the
-requested amount exactly, so **fee-on-transfer and rebasing tokens are rejected**
-(`InexactTransfer`). All token-moving functions use a reentrancy guard.
-
-## Contracts
-
-- `StakingMath.sol` — pure emission/weight/accrual math. A 1:1 translation of
-  `crates/staking-math` (constants, emission, weight, accrual). Solidity 0.8
-  checked arithmetic mirrors Rust `checked_*`.
-- `StakingPool.sol` — one pool for one token. Mirrors every Anchor instruction:
-  `startPool`, `fundRewards`, `syncRewards`, `crank`, `stake`, `unstake`,
-  `claim`, `compound`, `sweepToOperator`, and the admin ops. Per-pool
-  operator/treasury/taxes are immutable.
-- `StakingFactory.sol` — payable `createPool` deploys one `StakingPool` per token
-  (mirrors the Solana "one PDA pool per mint" model), charges the 0.02 ETH
-  launch fee, and sets the per-pool operator/treasury/taxes; the caller becomes
-  that pool's operator and admin.
-
-## How Solana concepts map to EVM
-
-| Solana / Anchor | EVM / Solidity |
-| --- | --- |
-| PDA pool per mint (`["pool", mint]`) | one `StakingPool` per token via factory |
-| Stake vault + reward vault PDAs | contract custody + `stakeVaultBalance` / `rewardVaultBalance` accounting |
-| SPL `transfer_checked` CPI | `SafeERC20.safeTransfer(From)` |
-| Client-allocated `Schedule` zero-copy account | `mapping` checkpoints + maturing |
-| Hardcoded global `OPERATOR` / `TREASURY` | per-pool operator/treasury chosen by the launcher at `createPool` |
-| `Clock::unix_timestamp` | `block.timestamp` |
-| Token-2022 mint-extension validation | strict balance-delta equality: fee-on-transfer / rebasing tokens rejected (`InexactTransfer`) |
-| Two-signer `transfer_authority` | two-step `transferAuthority` → `acceptAuthority` |
-
-## Usage
+## Setup
 
 ```bash
+cd evm
 npm install
-npm run build       # hardhat compile
-npm test            # 56 tests: math parity + lifecycle + differential + factory/tax/safety
+npx hardhat build
+npx hardhat test
 ```
 
-## Test suites
+`npx hardhat compile` still works as an alias; Hardhat 3’s canonical task is `build`.
 
-- **`StakingMath.test.js`** — 17 tests asserting the library reproduces the Rust
-  `staking-math` golden values exactly.
-- **`StakingPool.test.js`** — 13 lifecycle tests (funding gate, min stake, 5%
-  unstake tax, pause rules, compound, sweep, authority transfer, sync).
-- **`Differential.test.js`** — 15 tests: an independent JS oracle (`test/oracle.js`)
-  re-implementing the **on-chain crank/accrual semantics**, self-checked against
-  the Rust golden values, then run in lockstep with the deployed contract on
-  multi-user timelines asserting equal aggregates and per-user payouts.
-- **`FactoryTax.test.js`** — 11 tests: launch-fee accounting, per-pool
-  operator/treasury isolation, tax caps, treasury-zero-⇒-zero-tax, stake tax
-  from principal, and rejection of fee-on-transfer + reentrant tokens.
+## Deploy a new factory
 
-## Notes on fidelity
-
-Two things surfaced while building the differential tests, both documented here
-for transparency:
-
-1. **Per-hour emission flooring.** The on-chain `crank` floors each hour's
-   emission (`base*3*mult/12`), whereas the reference `cumulative_emitted` floors
-   once. Over the 336-hour program this leaves a small residual (measured ~0.15%
-   for a single minimum position) as recoverable surplus in the pool. This is the
-   real on-chain behaviour; it always floors toward the pool, so the pool can
-   never be overdrawn. This port matches the on-chain crank.
-
-2. **Double-claim safety.** The re-settlement snapshot stores the boundary-sum
-   baseline `G_{n0+min(k,72)}` consistent with the position's tenure step, so a
-   repeat claim with no elapsed time pays zero. (An earlier revision that stored
-   the *global* boundary sum over-paid a matured position on repeat settlement;
-   the differential double-claim test catches this, and the fix is verified by
-   `Differential.test.js`.)
-
-Deploy the factory (set the operator and treasury for all pools):
+Store secrets in the Hardhat keystore (not a `.env` committed to git):
 
 ```bash
-OPERATOR=0x... TREASURY=0x... npx hardhat run scripts/deploy.js --network robinhood
+npx hardhat keystore set ROBINHOOD_RPC_URL
+npx hardhat keystore set ROBINHOOD_PRIVATE_KEY
 ```
 
-Configure the `robinhood` network in `hardhat.config.js` with the chain's RPC
-URL and a deployer key once those details are published.
+Then:
 
-Then, for each Pons token:
-
-```solidity
-// minFunding / minStake are in the token's base units.
-factory.createPool(ponsToken, minFunding, minStake);
+```bash
+npx hardhat ignition deploy ignition/modules/StakingFactory.ts --network robinhood
 ```
 
-Lifecycle: `operator` funds rewards (`fundRewards`) until `fundedAmount >=
-minFunding`, the authority calls `startPool`, then users `stake` / `claim` /
-`compound` / `unstake` while anyone keeps the pool current via `crank`.
+Constructor defaults match the live Robinhood factory (0.01 / 0.03 / 0.06 ETH). Override `feeRecipient` if the deployer account should not collect fees:
 
-## Operational note: cranking
+```bash
+npx hardhat ignition deploy ignition/modules/StakingFactory.ts --network robinhood \
+  --parameters '{"StakingFactoryModule":{"feeRecipient":"0xd196eC7D3d77bc914F0193450CFedcf483c5fF13"}}'
+```
 
-On Solana the pool is advanced with a resumable `crank`. The same applies here:
-the pool must be cranked within one tenure step (1 hour) for `stake`, `unstake`,
-`claim`, and `compound` to succeed (the staleness gate). `crank` is
-permissionless and honors a `maxSteps` bound, so a keeper (or any user) can chain
-calls to catch up after gaps. Budget a keeper to crank roughly hourly.
+Or the viem script:
+
+```bash
+npx hardhat run scripts/deploy.ts --network robinhood
+```
+
+Point the app at the new address (`STAKING_FACTORY`). Existing pools on `0x84ee…0c6f` are unchanged.
+
+## Deploy the Marketing desk (sidecar)
+
+The live factories do **not** accept a marketing fee after `createPool`. Deploy one `MarketingDesk` per chain, pointed at that chain's factory. Anyone may pay the Marketing fee for a factory pool at any time (community boost). Branding and the verified badge stay with the operator. The pool's on-chain `tier` is not mutated.
+
+Do **not** pass factory `0x` addresses in `--parameters '{...}'` — Ignition JSON5 reads them as hex numbers (HHE10111). Use the script below.
+
+```powershell
+# Wallet that RECEIVES boosts (not the deployer). Set this first.
+$env:FEE_RECIPIENT="0xYourTreasury"
+
+npx hardhat run scripts/deployMarketingDesk.ts --network robinhood
+npx hardhat run scripts/deployMarketingDesk.ts --network ethereum
+```
+
+The script picks factory + fee from the chain (Robinhood `0x0E69…` / others `0x84ee…`). It prints deployer vs recipient, then the new desk address.
+
+Then point the app at each desk address:
+
+```
+VITE_MARKETING_DESK_ROBINHOOD=0x5a0eA0fA6813D21c257bE07915a1306BdeA3037A
+VITE_MARKETING_DESK_ETHEREUM=0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691
+VITE_MARKETING_DESK_BASE=0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691
+VITE_MARKETING_DESK_BSC=0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691
+VITE_MARKETING_DESK_HYPEREVM=0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691
+```
+
+(`NEXT_PUBLIC_MARKETING_DESK_*` is accepted as well.)
+
+## Tests
+
+TypeScript tests use `node:test` and viem (`import { describe, it } from "node:test"`, `import { network } from "hardhat"`).
+
+`test/GhostCohort.ts` covers the C-1 unstake/restake freeze that the previous factory could hit on 3–30 day pools.

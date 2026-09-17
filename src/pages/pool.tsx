@@ -1,0 +1,372 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "@tanstack/react-router";
+import { formatUnits } from "viem";
+import { TerminalShell } from "@/components/TerminalShell";
+import { ChainBadge } from "@/components/PoolDirectory";
+import { ChainSwitch } from "@/components/ChainSwitch";
+import { useChain } from "@/components/ChainProvider";
+import { displayTier, fetchPoolSummary, poolStatus, type PoolSummary } from "@/lib/factoryClient";
+import { getPoolMeta, type PoolMeta } from "@/lib/poolMeta";
+import { readLocalPools } from "@/lib/localPools";
+import { getMockPool, isMockPoolAddress } from "@/lib/mockPools";
+import { networkByChainId, explorerAddressUrl } from "@/lib/evmNetworks";
+import { sanitizeHttpUrl, sanitizeImageSrc } from "@/lib/sanitize";
+import { ClaimableTicker } from "@/components/ClaimableTicker";
+import { BuyMarketingPanel } from "@/components/BuyMarketingPanel";
+import { fetchMarketingStatus, type MarketingStatus } from "@/lib/marketingDesk";
+import { PoolVaultStats } from "@/components/PoolVaultStats";
+import { PoolActionStrip } from "@/components/PoolActionStrip";
+import { ApyCalculator } from "@/components/ApyCalculator";
+import { RewardChart } from "@/components/RewardChart";
+import { HeroMetrics } from "@/components/HeroMetrics";
+import { poolToStats } from "@/lib/poolStats";
+import { TokenPriceChip } from "@/components/TokenPriceChip";
+import { SampleDashboardsBanner } from "@/components/SampleDashboards";
+
+const EMPTY_DESK: MarketingStatus = { unlocked: false, trending: false, trendingUntil: 0 };
+
+export default function PoolDashboardPage() {
+  const { chainId, address } = useParams({ from: "/pool/$chainId/$address" });
+  const { selectNetwork, switching, walletConnected, walletChainId } = useChain();
+  const network = networkByChainId(Number(chainId));
+  const [pool, setPool] = useState<PoolSummary | null>(null);
+  const [meta, setMeta] = useState<PoolMeta | null>(null);
+  const [desk, setDesk] = useState<MarketingStatus>(EMPTY_DESK);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(
+    async (silent = false) => {
+      if (!network || !address) {
+        setError("Unknown chain.");
+        setLoading(false);
+        return;
+      }
+      if (!silent) setLoading(true);
+      try {
+        let summary: PoolSummary | null = null;
+        if (isMockPoolAddress(address)) {
+          summary = getMockPool(address, network.chain.id) ?? getMockPool(address);
+        } else {
+          try {
+            summary = await fetchPoolSummary(address, network);
+          } catch {
+            summary =
+              readLocalPools().find(
+                (p) =>
+                  p.chainId === network.chain.id &&
+                  p.pool.toLowerCase() === address.toLowerCase(),
+              ) ?? null;
+          }
+        }
+        if (!summary) {
+          setError("Pool not found on this chain.");
+          setLoading(false);
+          return;
+        }
+        const [tokenMeta, poolMeta, deskStatus] = await Promise.all([
+          getPoolMeta(summary.token).catch(() => null),
+          getPoolMeta(address).catch(() => null),
+          summary.demo
+            ? Promise.resolve(EMPTY_DESK)
+            : fetchMarketingStatus(address, network).catch(() => EMPTY_DESK),
+        ]);
+        setPool(summary);
+        setMeta(tokenMeta ?? poolMeta);
+        setDesk(deskStatus);
+        setError("");
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Could not load this pool.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [address, network],
+  );
+
+  useEffect(() => {
+    void load(false);
+  }, [load]);
+
+  const tier = pool ? displayTier(pool, meta) : (meta?.tier ?? 0);
+  const branded = tier === 1 || tier === 2;
+  const marketing = tier === 2 || desk.unlocked || !!pool?.marketingUnlocked;
+  const title = meta?.nickname?.trim() || (pool?.symbol ? `${pool.symbol} Pool` : "Staking Pool");
+  const banner = sanitizeImageSrc(meta?.banner);
+  const image = sanitizeImageSrc(meta?.image);
+  const staked = pool
+    ? Number(formatUnits(pool.stakeVaultBalance, pool.decimals || 18))
+    : 0;
+  const status = pool ? poolStatus(pool) : "pending";
+  const walletOnPoolChain = !!network && walletChainId === network.chain.id;
+  const deskStatus: MarketingStatus = {
+    unlocked: desk.unlocked || !!pool?.marketingUnlocked,
+    trending: desk.trending || (meta?.marketing?.trendingUntil ?? 0) > Date.now() / 1000,
+    trendingUntil: Math.max(desk.trendingUntil, meta?.marketing?.trendingUntil ?? 0),
+  };
+  const stats = useMemo(
+    () => (pool ? poolToStats(pool) : null),
+    [pool],
+  );
+
+  return (
+    <TerminalShell>
+        <main className="flex-1 min-w-0 px-4 md:px-6 lg:px-8 py-6">
+          <div className="max-w-[1200px] mx-auto space-y-6">
+            <div className="lg:hidden">
+              <ChainSwitch compact />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <Link
+                to={pool?.demo ? "/preview" : "/pools"}
+                className="text-xs font-semibold text-lo hover:text-hi"
+              >
+                {pool?.demo ? "← Sample dashboards" : "← All pools"}
+              </Link>
+              {network && <ChainBadge chainKey={network.key} />}
+            </div>
+
+            {loading ? (
+              <div className="glass !rounded-2xl p-8 animate-pulse h-64" />
+            ) : error || !pool || !network ? (
+              <div className="glass !rounded-2xl p-8 text-sm text-red-300">{error || "Pool not found."}</div>
+            ) : (
+              <>
+                {pool.demo && <SampleDashboardsBanner />}
+                {branded && banner && (
+                  <img
+                    src={banner}
+                    alt=""
+                    className="w-full h-40 object-cover rounded-2xl border border-black/10"
+                    data-testid="pool-banner"
+                  />
+                )}
+
+                <header className="glass !rounded-2xl p-6">
+                  <div className="flex items-start gap-4 flex-wrap sm:flex-nowrap">
+                    {image ? (
+                      <img
+                        src={image}
+                        alt=""
+                        className="h-16 w-16 rounded-2xl object-cover border border-black/10 shrink-0"
+                        data-testid="pool-image"
+                      />
+                    ) : (
+                      <div
+                        className="h-16 w-16 rounded-2xl grid place-items-center text-lg font-bold shrink-0"
+                        style={{ background: "linear-gradient(180deg, var(--neon-gold), var(--amber))", color: "#0a0c0f" }}
+                      >
+                        {(pool.symbol || "?").slice(0, 2)}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h1 className="text-2xl font-semibold text-hi truncate">{title}</h1>
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-black/[0.06] text-lo">
+                          {tier === 2 ? "Marketing" : tier === 1 ? "Ecosystem" : "Bronze"}
+                        </span>
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-500/15 text-green-300">
+                          {status}
+                        </span>
+                        {pool.demo && (
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold border border-black/10 text-lo">
+                            Demo
+                          </span>
+                        )}
+                        {marketing && (meta?.marketing?.verifiedBadge || pool.tierOnChain === 2) && (
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-[#22c55e] border border-[#22c55e]/30">
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                      <p className="label-term mt-1 !normal-case">
+                        {pool.symbol ? `$${pool.symbol}` : pool.token} · {network.label} · {pool.durationDays}d
+                      </p>
+                      <div className="mt-2">
+                        <TokenPriceChip chainId={pool.chainId} token={pool.token} />
+                      </div>
+                      {branded && (
+                        <PoolHeaderSocials socials={meta?.socials} />
+                      )}
+                    </div>
+                    <BuyMarketingPanel
+                      compact
+                      pool={pool}
+                      network={network}
+                      meta={meta}
+                      status={deskStatus}
+                      onUpdated={() => void load(true)}
+                    />
+                  </div>
+
+                  {walletConnected && !walletOnPoolChain && !pool.demo && (
+                    <button
+                      type="button"
+                      disabled={switching}
+                      onClick={() => void selectNetwork(network.key)}
+                      className="mt-4 h-10 px-4 rounded-xl text-xs font-semibold text-[#0a0c0f]"
+                      style={{ background: "linear-gradient(180deg, var(--neon-gold), var(--amber))" }}
+                    >
+                      {switching ? "Switching…" : `Switch wallet to ${network.label}`}
+                    </button>
+                  )}
+                </header>
+
+                <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Stat k="Total staked" v={formatCompact(staked)} />
+                  <Stat k="Duration" v={`${pool.durationDays}d`} />
+                  <Stat k="Stake tax" v={`${(pool.stakeTaxBps / 100).toFixed(2)}%`} />
+                  <Stat k="Unstake tax" v={`${(pool.unstakeTaxBps / 100).toFixed(2)}%`} />
+                </section>
+
+                {branded ? (
+                  <>
+                    <PoolVaultStats pool={pool} />
+                    <PoolActionStrip pool={pool} network={network} onUpdated={() => void load(true)} />
+                    {stats && <HeroMetrics stats={stats} compact />}
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+                      <div className="xl:col-span-1">
+                        <ApyCalculator stats={stats ?? undefined} />
+                      </div>
+                      <div className="xl:col-span-2">{stats && <RewardChart stats={stats} />}</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <PoolVaultStats pool={pool} />
+                    <PoolActionStrip pool={pool} network={network} onUpdated={() => void load(true)} />
+                  </>
+                )}
+
+                {!pool.demo && (
+                  <ClaimableTicker
+                    pool={pool.pool}
+                    chainId={pool.chainId}
+                    symbol={pool.symbol}
+                  />
+                )}
+
+                {tier === 0 && !marketing && (
+                  <section className="glass !rounded-2xl p-5">
+                    <h2 className="text-sm font-semibold text-hi">Bronze</h2>
+                    <p className="text-sm text-mid mt-1">
+                      Compact listing — no banner or socials yet. Anyone can boost this pool
+                      with the purple add-on to unlock branding for the operator and a 12-hour
+                      trending slot.
+                    </p>
+                  </section>
+                )}
+
+                {!pool.demo && (
+                  <a
+                    href={explorerAddressUrl(network, pool.pool)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex text-xs font-semibold text-gold-neon"
+                  >
+                    View on {network.short} explorer ↗
+                  </a>
+                )}
+              </>
+            )}
+          </div>
+        </main>
+    </TerminalShell>
+  );
+}
+
+function PoolHeaderSocials({ socials }: { socials?: PoolMeta["socials"] }) {
+  const items = [
+    { href: sanitizeHttpUrl(socials?.website), kind: "website", label: "Website" },
+    { href: sanitizeHttpUrl(socials?.twitter), kind: "twitter", label: "X" },
+    { href: sanitizeHttpUrl(socials?.telegram), kind: "telegram", label: "Telegram" },
+    { href: sanitizeHttpUrl(socials?.discord), kind: "discord", label: "Discord" },
+  ].filter((i): i is { href: string; kind: string; label: string } => !!i.href);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 mt-3" data-testid="pool-header-socials" aria-label="Pool socials">
+      {items.map((item) => (
+        <a
+          key={item.kind}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={item.label}
+          aria-label={item.label}
+          data-testid={`pool-social-${item.kind}`}
+          className="h-8 w-8 rounded-lg grid place-items-center text-hi border border-black/10
+                     bg-black/[0.03] hover:bg-black/[0.07] hover:border-black/20 transition-colors"
+        >
+          <SocialGlyph kind={item.kind} />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function SocialGlyph({ kind }: { kind: string }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    width: 14,
+    height: 14,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  if (kind === "twitter") {
+    return (
+      <svg {...common}>
+        <path d="M4 4l11.5 16h4.5L8.5 4H4z" />
+        <path d="M4 20l7.5-8.5" />
+        <path d="M12.5 12.5L20 4" />
+      </svg>
+    );
+  }
+  if (kind === "telegram") {
+    return (
+      <svg {...common}>
+        <path d="M22 3L2 10.5l6.5 2L20 6 11 14.5 20.5 21 22 3z" />
+      </svg>
+    );
+  }
+  if (kind === "discord") {
+    return (
+      <svg {...common}>
+        <path d="M7 7.5C8.2 6.6 9.6 6 11 6h2c1.4 0 2.8.6 4 1.5" />
+        <path d="M17 16.5c-1.2.9-2.6 1.5-4 1.5h-2c-1.4 0-2.8-.6-4-1.5" />
+        <circle cx="9" cy="12" r="1" fill="currentColor" />
+        <circle cx="15" cy="12" r="1" fill="currentColor" />
+        <path d="M8 18l-1.5 3" />
+        <path d="M16 18l1.5 3" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 010 18" />
+      <path d="M12 3a14 14 0 000 18" />
+    </svg>
+  );
+}
+
+function Stat({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="glass !rounded-2xl p-4">
+      <div className="mono text-lg font-bold text-gold-neon">{v}</div>
+      <div className="label-term !normal-case mt-1">{k}</div>
+    </div>
+  );
+}
+
+function formatCompact(n: number): string {
+  if (!Number.isFinite(n)) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}

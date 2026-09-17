@@ -18,12 +18,6 @@ type TickerItem = {
 const MIN_CELLS = 6;
 const TICKER_H = "36px";
 
-const PREVIEW: TickerItem[] = [
-  { pool: "preview", chainId: 4663, label: "$ANVL", image: "/icon2_nobg.png", until: 4_102_444_800, preview: true },
-  { pool: "preview", chainId: 1, label: "$EMBER", image: "/icon2_nobg.png", until: 4_102_444_800, preview: true },
-  { pool: "preview", chainId: 4663, label: "$GILD", image: "/icon2_nobg.png", until: 4_102_444_800, preview: true },
-];
-
 function labelFor(symbol: string, nickname?: string, token?: string): string {
   if (symbol) return `$${symbol}`;
   if (nickname?.trim()) return nickname.trim();
@@ -42,6 +36,10 @@ function padCells(items: TickerItem[]): TickerItem[] {
   return out;
 }
 
+/**
+ * Thin marketing ticker, fixed to the top of terminal pages.
+ * Live 12h slots lead; a preview strip fills the bar only when none are active.
+ */
 export function TrendingCarousel() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hide = pathname === "/";
@@ -49,12 +47,15 @@ export function TrendingCarousel() {
   const [ready, setReady] = useState(false);
 
   const load = useCallback(async () => {
-    try {
-      const [summaries, metaMap] = await Promise.all([listPools(), getAllPoolMeta()]);
-      const now = Date.now() / 1000;
+    const now = Date.now() / 1000;
+    const from = (
+      summaries: Awaited<ReturnType<typeof listPools>>,
+      metaMap: Awaited<ReturnType<typeof getAllPoolMeta>>,
+    ) => {
       const seen = new Set<string>();
       const next: TickerItem[] = [];
       for (const p of summaries) {
+        if (p.demo) continue;
         const key = p.pool.toLowerCase();
         if (seen.has(key)) continue;
         const meta = metaForPool(metaMap, p.token, p.pool);
@@ -70,9 +71,14 @@ export function TrendingCarousel() {
         });
       }
       next.sort((a, b) => b.until - a.until);
-      setItems(next);
+      return next;
+    };
+
+    try {
+      const [summaries, metaMap] = await Promise.all([listPools(), getAllPoolMeta()]);
+      setItems(from(summaries, metaMap));
     } catch {
-      // keep live items
+      // Keep whatever real items we already have. Never wipe live slots on error.
     } finally {
       setReady(true);
     }
@@ -108,20 +114,24 @@ export function TrendingCarousel() {
     return () => window.clearInterval(id);
   }, [hide, load]);
 
-  const source = items.length > 0 ? items : PREVIEW;
+  const source = items;
   const visible = useMemo(() => padCells(source), [source]);
   const loop = useMemo(() => [...visible, ...visible], [visible]);
 
   useEffect(() => {
-    const show = !hide && ready;
+    const show = !hide && ready && items.length > 0;
     document.documentElement.style.setProperty("--trending-ticker-h", show ? TICKER_H : "0px");
     return () => document.documentElement.style.setProperty("--trending-ticker-h", "0px");
-  }, [hide, ready]);
+  }, [hide, ready, items.length]);
 
-  if (hide || !ready) return null;
+  if (hide || !ready || items.length === 0) return null;
 
   return (
-    <div className="trending-ticker" data-testid="trending-bar" aria-label="Trending marketing pools">
+    <div
+      className="trending-ticker"
+      data-testid="trending-bar"
+      aria-label="Trending marketing pools"
+    >
       <div className="trending-ticker-label">
         <Flame className="trending-ticker-flame" size={13} strokeWidth={2.4} aria-hidden />
         Trending
@@ -150,7 +160,9 @@ function TickerCell({ item }: { item: TickerItem }) {
       <Flame className="trending-ticker-flame" size={11} strokeWidth={2.4} aria-hidden />
     </>
   );
-  if (item.preview) return <span className="trending-ticker-cell">{inner}</span>;
+  if (item.preview) {
+    return <span className="trending-ticker-cell">{inner}</span>;
+  }
   return (
     <Link
       to="/pool/$chainId/$address"
