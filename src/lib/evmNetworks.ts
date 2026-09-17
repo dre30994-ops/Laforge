@@ -3,6 +3,7 @@ import { type Chain } from "viem";
 import { mainnet, base, bsc } from "viem/chains";
 import { hyperEvm, robinhoodMainnet } from "@/lib/chains";
 
+/** Keys for the EVM networks the terminal actually launches pools on. */
 export type EvmNetworkKey = "robinhood" | "ethereum" | "base" | "bsc" | "hyperevm";
 
 export type EvmNetwork = {
@@ -11,10 +12,13 @@ export type EvmNetwork = {
   short: string;
   chain: Chain;
   factory: string;
+  /** Sidecar that accepts the marketing fee at any time. Empty until deployed. */
   desk: string;
   explorer: string;
   nativeSymbol: string;
+  /** Launch fees in wei, bronze / ecosystem / marketing. */
   fees: { bronze: bigint; ecosystem: bigint; marketing: bigint };
+  /** Short hint shown under the token address field. */
   addressHint: string;
 };
 
@@ -26,9 +30,13 @@ function deskEnv(name: string, fallback = ""): string {
   return publicEnv(name) || fallback;
 }
 
+/** Same CREATE address the deployer hit on ETH / Base / BSC / HyperEVM. */
 const SHARED_FACTORY = "0x84ee0716F5Af308Ce3D265962a9237e353fD0c6f";
+/** Patched factory on Robinhood Chain. */
 const ROBINHOOD_FACTORY = "0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691";
+/** Live Marketing desks (community boost sidecar). */
 const ROBINHOOD_DESK = "0x5a0eA0fA6813D21c257bE07915a1306BdeA3037A";
+/** Same CREATE address on Ethereum, Base, and HyperEVM. */
 const SHARED_DESK = "0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691";
 
 const ETH_FEES = {
@@ -108,6 +116,7 @@ export const EVM_NETWORKS: Record<EvmNetworkKey, EvmNetwork> = {
   },
 };
 
+/** Display order of every launch chain (full catalog — keep styling/config here). */
 export const EVM_NETWORK_CATALOG: EvmNetworkKey[] = [
   "robinhood",
   "ethereum",
@@ -116,9 +125,18 @@ export const EVM_NETWORK_CATALOG: EvmNetworkKey[] = [
   "bsc",
 ];
 
+/**
+ * Chains shown in the switcher / create picker right now.
+ * Hidden chains stay fully wired (factories, fees, glyphs) so they can be
+ * re-enabled one at a time without restyling.
+ */
 export const EVM_VISIBLE_NETWORKS: EvmNetworkKey[] = ["robinhood", "ethereum"];
+
+/** @deprecated use EVM_NETWORK_CATALOG — kept so listPools still fans out every factory. */
 export const EVM_NETWORK_ORDER: EvmNetworkKey[] = EVM_NETWORK_CATALOG;
+
 export const SHOW_SOLANA_IN_SWITCHER = false;
+
 export const PRIMARY_NETWORK: EvmNetworkKey = "robinhood";
 
 export function networkByChainId(chainId: number | undefined): EvmNetwork | undefined {
