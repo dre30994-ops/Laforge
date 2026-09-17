@@ -14,6 +14,7 @@ import type { Adapter } from "@solana/wallet-adapter-base";
 import { wagmiConfig } from "@/lib/chains";
 import { privyAppId, privyConfig } from "@/lib/privy";
 import { PrivyWagmiSync } from "@/components/PrivyWagmiSync";
+import { PrivyErrorBoundary } from "@/components/PrivyErrorBoundary";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
@@ -23,16 +24,21 @@ const SOLANA_RPC =
 export function WalletContextProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useMemo(() => new QueryClient(), []);
   const [solanaWallets, setSolanaWallets] = useState<Adapter[]>([]);
+  const [clientReady, setClientReady] = useState(false);
   const appId = privyAppId();
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   useEffect(() => {
     setSolanaWallets([new PhantomWalletAdapter(), new SolflareWalletAdapter()]);
   }, []);
 
-  const inner = (
+  const shell = (withPrivySync: boolean) => (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        {appId ? <PrivyWagmiSync /> : null}
+        {withPrivySync ? <PrivyWagmiSync /> : null}
         <ConnectionProvider endpoint={SOLANA_RPC}>
           <SolanaWalletProvider wallets={solanaWallets} autoConnect>
             <WalletModalProvider>{children}</WalletModalProvider>
@@ -42,11 +48,15 @@ export function WalletContextProvider({ children }: { children: React.ReactNode 
     </WagmiProvider>
   );
 
-  if (!appId) return inner;
+  // Privy is browser-only. Mounting it during SSR (or letting it throw) paints
+  // a blank white page. Wait until the client, then isolate failures.
+  if (!appId || !clientReady) return shell(false);
 
   return (
-    <PrivyProvider appId={appId} config={privyConfig}>
-      {inner}
-    </PrivyProvider>
+    <PrivyErrorBoundary fallback={shell(false)}>
+      <PrivyProvider appId={appId} config={privyConfig}>
+        {shell(true)}
+      </PrivyProvider>
+    </PrivyErrorBoundary>
   );
 }

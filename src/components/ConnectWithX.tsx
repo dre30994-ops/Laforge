@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { privyAppId } from "@/lib/privy";
 
@@ -88,8 +88,7 @@ function ConnectWithXLive() {
           try {
             await login({ loginMethods: ["twitter"] });
           } catch (e) {
-            const message = e instanceof Error ? e.message : "Could not open X login.";
-            setError(message);
+            setError(e instanceof Error ? e.message : "Could not open X login.");
           } finally {
             setBusy(false);
           }
@@ -100,6 +99,11 @@ function ConnectWithXLive() {
 }
 
 export function ConnectWithX() {
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    if (privyAppId()) setLive(true);
+  }, []);
+
   if (!privyAppId()) {
     return (
       <ConnectWithXButton
@@ -108,6 +112,9 @@ export function ConnectWithX() {
         onClick={() => undefined}
       />
     );
+  }
+  if (!live) {
+    return <ConnectWithXButton label="Connect with X" onClick={() => undefined} />;
   }
   return <ConnectWithXLive />;
 }
