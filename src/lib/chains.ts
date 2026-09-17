@@ -92,6 +92,7 @@ export const hyperEvm = defineChain({
 // ─────────────────────────────────────────────────────────────────────────────
 import { createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
+import { privyEmbeddedConnector } from "@/lib/privyConnector";
 import {
   mainnet,
   sepolia,
@@ -134,7 +135,7 @@ function rpc(name: string) {
 /** wagmi config. Uses each chain's default RPC unless overridden via env. */
 export const wagmiConfig = createConfig({
   chains: EVM_CHAINS,
-  connectors: [injected()],
+  connectors: [injected(), privyEmbeddedConnector],
   transports: {
     [mainnet.id]: rpc("ETHEREUM_RPC_URL"),
     [sepolia.id]: http(),

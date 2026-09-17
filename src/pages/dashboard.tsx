@@ -9,6 +9,9 @@ import { PoolDirectory } from "@/components/PoolDirectory";
 import { ChainSwitch } from "@/components/ChainSwitch";
 import { PoolSearch } from "@/components/PoolSearch";
 import { ImmutableStakeCard } from "@/components/ImmutableStakeCard";
+import { OfficialLinks } from "@/components/OfficialLinks";
+import { ConnectWithX } from "@/components/ConnectWithX";
+import { WalletButton } from "@/components/WalletButton";
 
 export default function Home() {
   return (
@@ -24,7 +27,9 @@ export default function Home() {
                   Pools on Robinhood and Ethereum
                 </p>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0 flex-wrap lg:pr-[7.5rem]">
+                <ConnectWithX />
+                <WalletButton />
                 <CreatePoolButton />
                 <div className="hidden md:flex items-center gap-2">
                   <span className="pulse-dot" />
@@ -39,9 +44,11 @@ export default function Home() {
               <ChainSwitch compact />
             </div>
 
+            <OfficialLinks compact />
+
             <StakingHero />
 
-            <HeroMetrics />
+            <HeroMetrics hideTvl />
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
               <div className="xl:col-span-2 space-y-6">
@@ -56,6 +63,8 @@ export default function Home() {
             <PositionStrip />
 
             <PoolDirectory />
+
+            <OfficialLinks contractsOnly />
 
             <footer className="pt-4 pb-2 text-center">
               <p className="label-term !tracking-normal !normal-case text-lo">

@@ -23,14 +23,16 @@ import { EVM_NETWORKS, isVisibleNetwork } from "@/lib/evmNetworks";
 export function HeroMetrics({
   stats: statsProp,
   compact = false,
+  hideTvl = false,
 }: {
   stats?: PoolStats;
   compact?: boolean;
+  hideTvl?: boolean;
 } = {}) {
   const live = usePoolStats();
   const stats = statsProp ?? live;
   const protocolMode = !statsProp && !compact;
-  const protocol = useProtocolTvl(protocolMode);
+  const protocol = useProtocolTvl(protocolMode && !hideTvl);
 
   // Per-second reward for the connected position, from the shared model.
   const projection = projectRewards({
@@ -70,9 +72,12 @@ export function HeroMetrics({
 
   return (
     <div
-      className={`grid grid-cols-1 sm:grid-cols-2 animate-rise ${compact ? "gap-2" : "gap-4"}`}
+      className={`grid grid-cols-1 ${
+        hideTvl ? "" : "sm:grid-cols-2"
+      } animate-rise ${compact ? "gap-2" : "gap-4"}`}
       data-testid={compact ? "hero-metrics-compact" : "hero-metrics"}
     >
+      {!hideTvl && (
       <div className={`glass glass-gold relative overflow-hidden ${compact ? "p-3" : "p-6"}`}>
         <div className={`flex items-center justify-between ${compact ? "mb-1.5" : "mb-3"}`}>
           <span className="label-term">Total Staked Value</span>
@@ -134,6 +139,7 @@ export function HeroMetrics({
           </div>
         )}
       </div>
+      )}
 
       <div className={`glass relative overflow-hidden ${compact ? "p-3" : "p-6"}`}>
         <div className={`flex items-center justify-between ${compact ? "mb-1.5" : "mb-3"}`}>

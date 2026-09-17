@@ -3,6 +3,7 @@ import { useSolanaWallet } from "@/hooks/useSolanaWallet";
 import { WalletButton } from "@/components/WalletButton";
 import { ChainSwitch } from "@/components/ChainSwitch";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
+import { SidebarXLink } from "@/components/OfficialLinks";
 import { useChain } from "@/components/ChainProvider";
 
 type IconProps = { className?: string };
@@ -177,6 +178,7 @@ export function Sidebar() {
           </span>
           <span>Samples</span>
         </Link>
+        <SidebarXLink />
       </nav>
 
       {/* Status + wallet */}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { OfficialLinks } from "@/components/OfficialLinks";
 
 const VIDEOS = [
   "/a.webm",
@@ -145,16 +146,21 @@ export default function LandingPage() {
       />
 
       <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
+        <OfficialLinks compact />
         <img
           src="/icon2_nobg.png"
           alt=""
-          className="h-16 w-16 mb-5 drop-shadow-[0_0_24px_rgba(255,207,77,0.45)]"
+          className="h-16 w-16 mt-6 mb-5 drop-shadow-[0_0_24px_rgba(255,207,77,0.45)]"
         />
         <p className="text-[11px] font-semibold tracking-[0.28em] uppercase text-amber-200/80">
           Laforge
         </p>
-        <h1 className="mt-3 text-4xl md:text-6xl font-semibold tracking-tight text-white max-w-3xl leading-tight">
-          Put your tokens to work.
+        <h1 className="mt-3 text-2xl md:text-3xl font-semibold tracking-tight max-w-xl leading-snug">
+          <span className="text-white/90">Staking </span>
+          <span className="landing-gold-accent">Nexus</span>
+          <span className="text-white/55"> and </span>
+          <span className="text-white/90">Gaming </span>
+          <span className="landing-gold-accent">Terminal</span>
         </h1>
         <p className="mt-4 text-sm md:text-base text-white/70 max-w-md leading-relaxed">
           Multi-chain staking. Tenure-weighted yield. Marketing that a community can boost.

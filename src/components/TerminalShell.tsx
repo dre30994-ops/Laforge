@@ -72,10 +72,9 @@ export function TerminalShell({ children }: { children: React.ReactNode }) {
 
         {shown && (
           <>
-            <button
-              type="button"
+            <div
+              role="presentation"
               className={`forge-drawer-scrim lg:hidden${open ? " is-open" : ""}`}
-              aria-label="Close menu"
               onClick={close}
             />
             <div

@@ -2,8 +2,8 @@ import { Volume2, VolumeX } from "lucide-react";
 import { useMusic } from "@/components/MusicProvider";
 
 /**
- * Persistent mute/unmute panel, wired to the shared cross-page music.
- * Rendered from the root layout so it is on every page, including landing.
+ * Persistent mute/unmute chip. Compact and left-aligned so it never covers
+ * Create (top-right) or the create-pool dialog (z-50).
  */
 export function MusicToggle() {
   const { muted, toggleMute } = useMusic();
@@ -11,15 +11,10 @@ export function MusicToggle() {
   return (
     <div
       className="music-modal"
-      role="dialog"
+      role="group"
       aria-label="Background music"
       data-testid="music-modal"
     >
-      <p className="music-modal-kicker">Sound</p>
-      <p className="music-modal-status">
-        {!muted && <span className="pulse-dot" aria-hidden />}
-        {muted ? "Muted" : "Playing"}
-      </p>
       <button
         type="button"
         onClick={toggleMute}
@@ -27,11 +22,11 @@ export function MusicToggle() {
         className="music-modal-btn"
       >
         {muted ? (
-          <VolumeX size={16} strokeWidth={2.2} aria-hidden />
+          <VolumeX size={15} strokeWidth={2.2} aria-hidden />
         ) : (
-          <Volume2 size={16} strokeWidth={2.2} aria-hidden />
+          <Volume2 size={15} strokeWidth={2.2} aria-hidden />
         )}
-        {muted ? "Unmute" : "Mute"}
+        <span className="hidden sm:inline">{muted ? "Unmute" : "Mute"}</span>
       </button>
     </div>
   );
