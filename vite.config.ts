@@ -142,6 +142,49 @@ function authPopupPlugin(): Plugin {
   };
 }
 
+function x402OptionalPeerStub(): Plugin {
+  const stub = `
+export function toClientEvmSigner() { return {}; }
+export function registerExactEvmScheme() {}
+export class ExactEvmScheme {}
+export class UptoEvmScheme {}
+export class ExactSvmScheme {}
+export class UptoSvmScheme {}
+export const x402ResourceServer = {};
+export const x402HTTPResourceServer = {};
+export const x402Client = {};
+export const PaymentRequirementsV1Schema = {};
+export const PaymentRequirementsV2Schema = {};
+export const BUILDER_CODE_PATTERN = /(?:)/;
+export const BUILDER_CODE_SCHEMA = {};
+export const BUILDER_CODE = "";
+export const bazaarResourceServerExtension = {};
+export const builderCodeResourceServerExtension = {};
+export const loadStripe = () => Promise.resolve(null);
+export default {};
+`;
+  function shouldStub(id: string) {
+    return (
+      id === "@x402/evm" ||
+      id.startsWith("@x402/") ||
+      id === "@stripe/stripe-js" ||
+      id.startsWith("@stripe/stripe-js/")
+    );
+  }
+  return {
+    name: "optional-peer-stub",
+    enforce: "pre",
+    resolveId(id) {
+      if (shouldStub(id)) return "\0optional-peer-stub";
+      return null;
+    },
+    load(id) {
+      if (id === "\0optional-peer-stub") return stub;
+      return null;
+    },
+  };
+}
+
 // `0.0.0.0:8080` is the live-preview contract — don't change host/port.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
@@ -175,7 +218,13 @@ export default defineConfig(({ command, isPreview }) => ({
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },
+  ssr: {
+    // Privy pulls @coinbase/cdp-sdk → optional @x402/* peers. Stub those;
+    // don't let Nitro fail the server bundle on missing x402 exports.
+    external: ["@coinbase/cdp-sdk"],
+  },
   plugins: [
+    x402OptionalPeerStub(),
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),
