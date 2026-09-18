@@ -12,6 +12,7 @@ import { getPoolMeta, type PoolMeta } from "@/lib/poolMeta";
 import { readLocalPools } from "@/lib/localPools";
 import { getMockPool, isMockPoolAddress } from "@/lib/mockPools";
 import { networkByChainId, explorerAddressUrl, type EvmNetwork } from "@/lib/evmNetworks";
+import { shortAddress } from "@/lib/brand";
 import { sanitizeHttpUrl, sanitizeImageSrc } from "@/lib/sanitize";
 import { ClaimableTicker } from "@/components/ClaimableTicker";
 import { BuyMarketingPanel } from "@/components/BuyMarketingPanel";
@@ -194,6 +195,21 @@ export default function PoolDashboardPage() {
                           View pool on {network.short} explorer ↗
                         </a>
                       )}
+                      {pool.treasury &&
+                        pool.treasury !== "0x0000000000000000000000000000000000000000" && (
+                          <p className="mt-1.5 text-xs text-mid">
+                            Tax treasury{" "}
+                            <a
+                              href={explorerAddressUrl(network, pool.treasury)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-hi hover:text-gold-700 hover:underline"
+                              title={pool.treasury}
+                            >
+                              {shortAddress(pool.treasury)}
+                            </a>
+                          </p>
+                        )}
                       <div className="mt-2">
                         <TokenPriceChip chainId={pool.chainId} token={pool.token} />
                       </div>
@@ -397,12 +413,43 @@ function TreasuryRelease({
   const config = useConfig();
   const { isConnected, chainId } = useAccount();
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [message, setMessage] = useState("");
   const owed = pool.owedToTreasury ?? 0n;
-  if (pool.demo || owed === 0n) return null;
+  const treasury = pool.treasury;
+  if (
+    pool.demo ||
+    owed === 0n ||
+    !treasury ||
+    treasury === "0x0000000000000000000000000000000000000000"
+  ) {
+    return null;
+  }
 
   const amount = formatUnits(owed, pool.decimals || 18);
   const symbol = pool.symbol || "tokens";
+  const dest = shortAddress(treasury);
+
+  async function send() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const wallet = await getWalletClient(config, { chainId: network.chain.id });
+      if (!wallet) throw new Error("Connect a wallet to send taxes.");
+      const hash = await sweepPoolTreasury(wallet, pool, network);
+      setMessage(
+        hash
+          ? `Sent to treasury ${dest}.`
+          : "Nothing to send, or the treasury rejected the token.",
+      );
+      onUpdated();
+    } catch (e: unknown) {
+      setMessage(e instanceof Error ? e.message : "Could not send taxes.");
+    } finally {
+      setBusy(false);
+      setConfirmOpen(false);
+    }
+  }
 
   return (
     <div className="glass !rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -410,35 +457,82 @@ function TreasuryRelease({
         <p className="text-sm font-semibold text-hi">Taxes waiting for treasury</p>
         <p className="text-xs text-mid mt-1 leading-relaxed">
           {amount} {symbol} from stake/unstake tax is sitting in this pool. Claim has no tax.
-          Anyone can release it to the treasury address.
+          This pays the address set at pool creation
+          {" — "}
+          <a
+            href={explorerAddressUrl(network, treasury)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-hi hover:underline"
+            title={treasury}
+          >
+            {dest}
+          </a>
+          — not the operator and not Laforge&rsquo;s launch-fee wallet.
         </p>
         {message ? <p className="text-[11px] text-mid mt-1">{message}</p> : null}
       </div>
       <button
         type="button"
         disabled={busy || !isConnected || chainId !== network.chain.id}
-        onClick={() => {
-          void (async () => {
-            setBusy(true);
-            setMessage("");
-            try {
-              const wallet = await getWalletClient(config, { chainId: network.chain.id });
-              if (!wallet) throw new Error("Connect a wallet to send taxes.");
-              const hash = await sweepPoolTreasury(wallet, pool, network);
-              setMessage(hash ? "Sent to treasury." : "Nothing to send, or the treasury rejected the token.");
-              onUpdated();
-            } catch (e: unknown) {
-              setMessage(e instanceof Error ? e.message : "Could not send taxes.");
-            } finally {
-              setBusy(false);
-            }
-          })();
-        }}
+        onClick={() => setConfirmOpen(true)}
         className="h-10 px-4 rounded-xl text-xs font-semibold text-white shrink-0"
         style={{ background: "linear-gradient(180deg, #22c55e, #16a34a)" }}
       >
         {busy ? "Sending…" : "Send taxes to treasury"}
       </button>
+      {confirmOpen ? (
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center px-4"
+          role="presentation"
+          onClick={() => !busy && setConfirmOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-[6px]" />
+          <div
+            role="dialog"
+            aria-labelledby="treasury-release-title"
+            className="relative w-full max-w-md rounded-2xl p-5 bg-white border border-black/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="treasury-release-title" className="text-base font-semibold text-hi">
+              Send taxes to the pool treasury
+            </h3>
+            <p className="mt-2 text-sm text-mid leading-relaxed">
+              {amount} {symbol} will transfer to the treasury chosen when this pool was created:
+            </p>
+            <a
+              href={explorerAddressUrl(network, treasury)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 block font-mono text-xs text-hi break-all hover:underline"
+            >
+              {treasury}
+            </a>
+            <p className="mt-2 text-[11px] text-lo leading-relaxed">
+              This is not the connected wallet and not the launch-fee recipient.
+            </p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmOpen(false)}
+                className="h-10 px-4 rounded-xl text-xs font-semibold text-hi border border-black/15 hover:bg-black/[0.04]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void send()}
+                className="h-10 px-4 rounded-xl text-xs font-semibold text-white"
+                style={{ background: "linear-gradient(180deg, #22c55e, #16a34a)" }}
+              >
+                {busy ? "Sending…" : `Confirm · ${dest}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
