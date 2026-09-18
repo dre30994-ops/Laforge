@@ -38,6 +38,7 @@ export function BuyMarketingPanel({
   const { connectAsync, connectors } = useConnect();
   const { selectNetwork, switching } = useChain();
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [txHash, setTxHash] = useState("");
 
@@ -132,14 +133,14 @@ export function BuyMarketingPanel({
     onUpdated,
   ]);
 
-  const cta = unlocked ? `Extend · ${feeLabel}` : `Add-on · ${feeLabel}`;
+  const cta = unlocked ? `Extend Marketing · ${feeLabel}` : `Marketing Add-on · ${feeLabel}`;
   const canPay = demo || deskConfigured(network);
 
   const button = (
     <button
       type="button"
       disabled={busy || switching || !canPay}
-      onClick={() => void pay()}
+      onClick={() => setConfirmOpen(true)}
       className="h-10 px-4 rounded-xl text-xs font-semibold text-white border-none disabled:opacity-40
                  whitespace-nowrap shadow-[0_8px_24px_rgba(124,58,237,0.35)]"
       style={{ background: PURPLE }}
@@ -148,6 +149,63 @@ export function BuyMarketingPanel({
       {busy ? "Confirm in wallet…" : cta}
     </button>
   );
+
+  const confirmModal = confirmOpen ? (
+    <div
+      className="fixed inset-0 z-[80] grid place-items-center px-4"
+      role="presentation"
+      onClick={() => !busy && setConfirmOpen(false)}
+    >
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[6px]" />
+      <div
+        role="dialog"
+        aria-labelledby="marketing-addon-title"
+        className="relative w-full max-w-md rounded-2xl p-5"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,248,242,0.96))",
+          border: "1px solid rgba(168, 85, 247, 0.35)",
+          boxShadow: "0 22px 50px -18px rgba(60, 20, 80, 0.4)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-mid">Community boost</p>
+        <h3 id="marketing-addon-title" className="mt-1 text-base font-semibold text-hi">
+          {unlocked ? "Extend Marketing Add-on" : "Marketing Add-on"}
+        </h3>
+        <p className="mt-2 text-sm text-mid leading-relaxed">
+          You are about to pay <span className="text-hi font-semibold">{feeLabel}</span> on{" "}
+          {network.label}. This is a boost, not a stake — it does not deposit tokens.
+        </p>
+        <ul className="mt-3 space-y-1.5 text-sm text-hi">
+          <li>Places this pool in a 12-hour trending slot.</li>
+          <li>{unlocked ? "Extends the current Marketing window." : "Unlocks Marketing on this pool."}</li>
+          <li>Banner, socials, and the verified badge stay with the operator.</li>
+        </ul>
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmOpen(false)}
+            className="h-10 px-4 rounded-xl text-xs font-semibold text-hi border border-black/15 hover:bg-black/[0.04]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={busy || switching || !canPay}
+            onClick={() => {
+              setConfirmOpen(false);
+              void pay();
+            }}
+            className="h-10 px-4 rounded-xl text-xs font-semibold text-white border-none"
+            style={{ background: PURPLE }}
+          >
+            {busy ? "Confirm in wallet…" : `Confirm · ${feeLabel}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   if (compact) {
     return (
@@ -182,6 +240,7 @@ export function BuyMarketingPanel({
             )}
           </p>
         )}
+        {confirmModal}
       </div>
     );
   }
@@ -247,6 +306,7 @@ export function BuyMarketingPanel({
           Only the operator can edit banner, socials, and the verified badge.
         </p>
       )}
+      {confirmModal}
     </section>
   );
 }

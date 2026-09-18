@@ -136,6 +136,8 @@ export const STAKING_POOL_ABI = [
     outputs: [],
   },
   { type: "function", name: "claim", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { type: "function", name: "owedToTreasury", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "withdrawTreasury", stateMutability: "nonpayable", inputs: [], outputs: [] },
   {
     type: "function",
     name: "positions",
@@ -365,6 +367,8 @@ export type PoolSummary = {
   unstakeVolume?: bigint;
   startTs?: number;
   demo?: boolean;
+  treasury?: string;
+  owedToTreasury?: bigint;
 };
 
 /** UI tier: desk payment or a Marketing launch both count as Marketing (2). */
@@ -441,6 +445,7 @@ export async function fetchPoolSummary(
     started,
     paused,
     stakeVaultBalance,
+    owedToTreasury,
   ] = await Promise.all([
     read<string>("token"),
     read<string>("operator"),
@@ -453,8 +458,8 @@ export async function fetchPoolSummary(
     read<boolean>("started"),
     read<boolean>("paused"),
     read<bigint>("stakeVaultBalance"),
+    read<bigint>("owedToTreasury").catch(() => 0n),
   ]);
-  void treasury;
 
   const [fundedAmount, totalEmitted, totalClaimed, rewardVaultBalance, minStake, totalStaked, startTs] =
     await Promise.all([
@@ -518,6 +523,8 @@ export async function fetchPoolSummary(
     rewardVaultBalance,
     minStake,
     startTs: Number(startTs) || undefined,
+    treasury,
+    owedToTreasury,
   };
 }
 
@@ -637,6 +644,7 @@ export async function stakeIntoPool(
     args: [amount],
   });
   await publicClient.waitForTransactionReceipt({ hash: txHash });
+  await sweepPoolTreasury(walletClient, pool, network);
   return txHash;
 }
 
@@ -658,6 +666,7 @@ export async function unstakeFromPool(
     args: [amount],
   });
   await publicClient.waitForTransactionReceipt({ hash: txHash });
+  await sweepPoolTreasury(walletClient, pool, network);
   return txHash;
 }
 
@@ -678,4 +687,39 @@ export async function claimFromPool(
   });
   await publicClient.waitForTransactionReceipt({ hash: txHash });
   return txHash;
+}
+
+/**
+ * Push accrued stake/unstake tax to the immutable treasury.
+ * Permissionless. Returns the tx hash, or null if nothing was owed / the
+ * treasury rejected the transfer. Never throws — stake/unstake already landed.
+ */
+export async function sweepPoolTreasury(
+  walletClient: WalletClient,
+  pool: PoolSummary,
+  network: EvmNetwork,
+): Promise<string | null> {
+  const account = walletClient.account;
+  if (!account) return null;
+  const publicClient = getPublicClient(network);
+  const poolAddr = getAddress(pool.pool) as Hex;
+  try {
+    const owed = (await publicClient.readContract({
+      address: poolAddr,
+      abi: STAKING_POOL_ABI,
+      functionName: "owedToTreasury",
+    })) as bigint;
+    if (owed === 0n) return null;
+    const hash = await walletClient.writeContract({
+      account,
+      chain: network.chain,
+      address: poolAddr,
+      abi: STAKING_POOL_ABI,
+      functionName: "withdrawTreasury",
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    return hash;
+  } catch {
+    return null;
+  }
 }

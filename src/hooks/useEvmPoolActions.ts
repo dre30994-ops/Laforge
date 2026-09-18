@@ -85,7 +85,7 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
         const wallet = await ensureWallet();
         if (!wallet) throw new Error("Connect an EVM wallet to stake.");
         return stakeIntoPool(wallet, pool, network, amount);
-      }, "Stake confirmed.");
+      }, "Stake confirmed. Tax is sent to the treasury if this pool has one.");
     },
     [parseAmount, run, mock, pool, user, ensureWallet, network],
   );
@@ -106,7 +106,7 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
         const wallet = await ensureWallet();
         if (!wallet) throw new Error("Connect an EVM wallet to unstake.");
         return unstakeFromPool(wallet, pool, network, amount);
-      }, "Unstake confirmed.");
+      }, "Unstake confirmed. Tax is sent to the treasury if this pool has one.");
     },
     [parseAmount, run, mock, pool, user, ensureWallet, network],
   );

@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { formatUnits } from "viem";
+import { useAccount, useConfig } from "wagmi";
+import { getWalletClient } from "wagmi/actions";
 import { TerminalShell } from "@/components/TerminalShell";
 import { ChainBadge } from "@/components/PoolDirectory";
 import { ChainSwitch } from "@/components/ChainSwitch";
 import { useChain } from "@/components/ChainProvider";
-import { displayTier, fetchPoolSummary, poolStatus, type PoolSummary } from "@/lib/factoryClient";
+import { displayTier, fetchPoolSummary, poolStatus, sweepPoolTreasury, type PoolSummary } from "@/lib/factoryClient";
 import { getPoolMeta, type PoolMeta } from "@/lib/poolMeta";
 import { readLocalPools } from "@/lib/localPools";
 import { getMockPool, isMockPoolAddress } from "@/lib/mockPools";
-import { networkByChainId, explorerAddressUrl } from "@/lib/evmNetworks";
+import { networkByChainId, explorerAddressUrl, type EvmNetwork } from "@/lib/evmNetworks";
 import { sanitizeHttpUrl, sanitizeImageSrc } from "@/lib/sanitize";
 import { ClaimableTicker } from "@/components/ClaimableTicker";
 import { BuyMarketingPanel } from "@/components/BuyMarketingPanel";
@@ -219,6 +221,8 @@ export default function PoolDashboardPage() {
                   <Stat k="Unstake tax" v={`${(pool.unstakeTaxBps / 100).toFixed(2)}%`} />
                 </section>
 
+                <TreasuryRelease pool={pool} network={network} onUpdated={() => void load(true)} />
+
                 {branded ? (
                   <>
                     <PoolVaultStats pool={pool} />
@@ -251,7 +255,7 @@ export default function PoolDashboardPage() {
                     <h2 className="text-sm font-semibold text-hi">Bronze</h2>
                     <p className="text-sm text-mid mt-1">
                       Compact listing — no banner or socials yet. Anyone can boost this pool
-                      with the purple add-on to unlock branding for the operator and a 12-hour
+                      with the Marketing Add-on to unlock branding for the operator and a 12-hour
                       trending slot.
                     </p>
                   </section>
@@ -369,4 +373,62 @@ function formatCompact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function TreasuryRelease({
+  pool,
+  network,
+  onUpdated,
+}: {
+  pool: PoolSummary;
+  network: EvmNetwork;
+  onUpdated: () => void;
+}) {
+  const config = useConfig();
+  const { isConnected, chainId } = useAccount();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const owed = pool.owedToTreasury ?? 0n;
+  if (pool.demo || owed === 0n) return null;
+
+  const amount = formatUnits(owed, pool.decimals || 18);
+  const symbol = pool.symbol || "tokens";
+
+  return (
+    <div className="glass !rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-hi">Taxes waiting for treasury</p>
+        <p className="text-xs text-mid mt-1 leading-relaxed">
+          {amount} {symbol} from stake/unstake tax is sitting in this pool. Claim has no tax.
+          Anyone can release it to the treasury address.
+        </p>
+        {message ? <p className="text-[11px] text-mid mt-1">{message}</p> : null}
+      </div>
+      <button
+        type="button"
+        disabled={busy || !isConnected || chainId !== network.chain.id}
+        onClick={() => {
+          void (async () => {
+            setBusy(true);
+            setMessage("");
+            try {
+              const wallet = await getWalletClient(config, { chainId: network.chain.id });
+              if (!wallet) throw new Error("Connect a wallet to send taxes.");
+              const hash = await sweepPoolTreasury(wallet, pool, network);
+              setMessage(hash ? "Sent to treasury." : "Nothing to send, or the treasury rejected the token.");
+              onUpdated();
+            } catch (e: unknown) {
+              setMessage(e instanceof Error ? e.message : "Could not send taxes.");
+            } finally {
+              setBusy(false);
+            }
+          })();
+        }}
+        className="h-10 px-4 rounded-xl text-xs font-semibold text-white shrink-0"
+        style={{ background: "linear-gradient(180deg, #22c55e, #16a34a)" }}
+      >
+        {busy ? "Sending…" : "Send taxes to treasury"}
+      </button>
+    </div>
+  );
 }

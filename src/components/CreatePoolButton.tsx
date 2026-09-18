@@ -618,10 +618,10 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
           >
             <span className="text-amber-neon font-semibold">Important:</span>{" "}
             <span className="text-mid">
-              stake and unstake taxes are sent to your treasury on every stake/unstake. Make sure
-              the treasury is an address that can <span className="text-hi">receive and accept</span>{" "}
-              those token transfers (a wallet or a contract with a payable/token-receiving fallback).
-              If the treasury can&rsquo;t accept the token, taxed transfers may fail.
+              Stake and unstake taxes are deducted into the pool, then released to your treasury.
+              Claim has no tax. The app sends the release automatically after each stake/unstake
+              (a second wallet confirmation). Anyone can also press &ldquo;Send taxes to treasury&rdquo;
+              on the pool page. Use a wallet or a contract that can receive this ERC-20.
             </span>
           </div>
 

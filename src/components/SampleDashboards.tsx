@@ -27,7 +27,7 @@ export function SampleDashboardsBanner() {
       <div>
         <p className="text-sm font-semibold text-hi">Sample data. Not live.</p>
         <p className="text-xs text-mid mt-0.5 leading-relaxed">
-          Nothing here is a stake. Numbers, socials, and the add-on are a walkthrough of how a
+          Nothing here is a stake. Numbers, socials, and the Marketing Add-on are a walkthrough of how a
           real pool dashboard reads.
         </p>
       </div>
