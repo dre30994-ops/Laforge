@@ -25,7 +25,7 @@ export function WalletContextProvider({ children }: { children: React.ReactNode 
   const queryClient = useMemo(() => new QueryClient(), []);
   const [solanaWallets, setSolanaWallets] = useState<Adapter[]>([]);
   const [clientReady, setClientReady] = useState(false);
-  const appId = privyAppId();
+  const appId = clientReady ? privyAppId() : "";
 
   useEffect(() => {
     setClientReady(true);

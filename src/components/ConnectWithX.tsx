@@ -100,21 +100,24 @@ function ConnectWithXLive() {
 
 export function ConnectWithX() {
   const [live, setLive] = useState(false);
+  const [error, setError] = useState("");
+
   useEffect(() => {
     if (privyAppId()) setLive(true);
   }, []);
 
-  if (!privyAppId()) {
+  if (!live) {
     return (
       <ConnectWithXButton
         label="Connect with X"
-        error="Set PRIVY_APP_ID or VITE_PRIVY_APP_ID on Vercel, then redeploy."
-        onClick={() => undefined}
+        error={error}
+        onClick={() => {
+          if (privyAppId()) setLive(true);
+          else setError("Missing Privy app ID. Add VITE_PRIVY_APP_ID on Vercel and redeploy.");
+        }}
       />
     );
   }
-  if (!live) {
-    return <ConnectWithXButton label="Connect with X" onClick={() => undefined} />;
-  }
   return <ConnectWithXLive />;
 }
+

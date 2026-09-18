@@ -189,8 +189,6 @@ export default {};
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
 export default defineConfig(({ command, isPreview, mode }) => {
-  // Load env files (.env, .env.local, .env.[mode]) plus already-set process
-  // env for both the Vite prefixes and the raw PRIVY_APP_ID Vercel stores.
   const fileEnv = loadEnv(mode, process.cwd(), ["VITE_", "NEXT_PUBLIC_", "PRIVY_"]);
   const privyAppId =
     process.env.VITE_PRIVY_APP_ID ||
@@ -204,9 +202,9 @@ export default defineConfig(({ command, isPreview, mode }) => {
   envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   define: {
     global: "globalThis",
-    // Vercel often stores this as PRIVY_APP_ID (no Vite prefix). Inline it
-    // so the client bundle can open the Privy modal.
-    "import.meta.env.VITE_PRIVY_APP_ID": JSON.stringify(privyAppId),
+    ...(privyAppId
+      ? { "import.meta.env.VITE_PRIVY_APP_ID": JSON.stringify(privyAppId) }
+      : {}),
   },
   server: {
     host: "0.0.0.0",
