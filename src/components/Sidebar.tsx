@@ -117,7 +117,7 @@ export function Sidebar() {
     family === "solana" ? (connected ? "Solana · Live" : "Solana · Devnet") : network.short;
 
   return (
-    <aside className="glass !rounded-2xl flex flex-col w-full h-full p-4 relative z-10 overflow-visible">
+    <aside className="glass !rounded-2xl flex flex-col w-full h-full min-h-0 p-4 relative z-10 overflow-y-auto overflow-x-hidden">
       {/* Brand — links back to the landing page */}
       <Link
         to="/"
@@ -139,7 +139,7 @@ export function Sidebar() {
       </Link>
 
       {/* Nav */}
-      <nav className="flex flex-col gap-1 flex-1">
+      <nav className="flex flex-col gap-1 flex-1 min-h-0">
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.match);
@@ -182,7 +182,7 @@ export function Sidebar() {
       </nav>
 
       {/* Status + wallet */}
-      <div className="mt-4 pt-4 border-t border-black/[0.06] space-y-3">
+      <div className="mt-4 pt-4 border-t border-black/[0.06] space-y-3 shrink-0">
         <div className="flex items-center gap-2 px-1">
           <span className="pulse-dot" />
           <span className="label-term !text-[10px]">{netLabel}</span>

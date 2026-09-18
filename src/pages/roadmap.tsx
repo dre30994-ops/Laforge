@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { TerminalShell } from "@/components/TerminalShell";
-import { EthereumMark, GoldQuestionMark } from "@/components/BrandMarks";
+import { EthereumMark, GoldQuestionMark, RobinhoodFeather, SolanaMark } from "@/components/BrandMarks";
 
 /** A single roadmap milestone. */
 type Checkpoint = {
@@ -106,26 +106,12 @@ function CheckpointIcon({ kind }: { kind: Checkpoint["icon"] }) {
     );
   }
   if (kind === "robinhood") {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src="/roadmap/Robinhood--Streamline-Simple-Icons.svg"
-        alt=""
-        className="w-[18px] h-[18px] object-contain"
-      />
-    );
+    return <RobinhoodFeather size={22} />;
   }
-  if (kind === "ethereum") return <EthereumMark size={18} />;
+  if (kind === "ethereum") return <EthereumMark size={22} />;
   if (kind === "question") return <GoldQuestionMark size={18} />;
   if (kind === "solana") {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src="/roadmap/Solana--Streamline-Simple-Icons.svg"
-        alt=""
-        className="w-[18px] h-[18px] object-contain"
-      />
-    );
+    return <SolanaMark size={22} />;
   }
   if (kind === "play") return <>🎮</>;
   if (kind === "beta") return <>🧪</>;
@@ -213,7 +199,7 @@ function CheckpointRow({ c, last }: { c: Checkpoint; last: boolean }) {
       <div className="min-w-0 pt-0.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span
-            className="grid place-items-center w-7 h-7 rounded-lg shrink-0 overflow-hidden text-sm"
+            className="grid place-items-center w-8 h-8 rounded-lg shrink-0 overflow-hidden text-sm"
             style={{
               background: "rgba(20,18,10,0.03)",
               border: "1px solid var(--hairline)",

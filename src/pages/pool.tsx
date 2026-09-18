@@ -184,6 +184,16 @@ export default function PoolDashboardPage() {
                       <p className="label-term mt-1 !normal-case">
                         {pool.symbol ? `$${pool.symbol}` : pool.token} · {network.label} · {pool.durationDays}d
                       </p>
+                      {!pool.demo && (
+                        <a
+                          href={explorerAddressUrl(network, pool.pool)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-gold-neon hover:underline"
+                        >
+                          View pool on {network.short} explorer ↗
+                        </a>
+                      )}
                       <div className="mt-2">
                         <TokenPriceChip chainId={pool.chainId} token={pool.token} />
                       </div>

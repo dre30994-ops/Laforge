@@ -1010,6 +1010,9 @@ body:has(#headlessui-portal-root [role="dialog"]) .forge-drawer-scrim {
 .forge-drawer-panel {
   height: 100%;
   padding: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
   border-radius: 28px;
   background:
     linear-gradient(165deg, rgba(255, 253, 248, 0.97) 0%, rgba(255, 246, 232, 0.94) 100%);

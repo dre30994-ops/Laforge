@@ -12,8 +12,6 @@ import { onPoolsChanged } from "@/lib/poolEvents";
 import { EVM_NETWORKS, explorerAddressUrl, isVisibleNetwork, type EvmNetworkKey } from "@/lib/evmNetworks";
 import { ChainGlyph } from "@/components/ChainSwitch";
 import { sanitizeHttpUrl, sanitizeImageSrc, sanitizeSocials } from "@/lib/sanitize";
-import { useTokenQuote } from "@/components/TokenPriceChip";
-import { formatUsd } from "@/lib/tokenQuote";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
 
 export type CardData = PoolSummary & { meta: PoolMeta | null; trending: boolean };
@@ -163,9 +161,6 @@ export function PoolCard({ data }: { data: CardData }) {
     (data.symbol ? `${data.symbol} Pool` : "Staking Pool");
   const staked = Number(formatUnits(data.stakeVaultBalance, data.decimals || 18));
   const explorer = explorerAddressUrl(network, data.pool);
-  const quote = useTokenQuote(data.chainId, data.token);
-  const tvlUsd =
-    quote && Number.isFinite(staked) ? staked * quote.priceUsd : null;
 
   const meta = data.meta;
   const banner = sanitizeImageSrc(meta?.banner);
@@ -209,9 +204,8 @@ export function PoolCard({ data }: { data: CardData }) {
 
       {isVisibleNetwork(data.chainKey) && <ChainBadge chainKey={data.chainKey} />}
 
-      <dl className="grid grid-cols-2 gap-3">
+      <dl className="grid grid-cols-3 gap-3">
         <Stat k="Total staked" v={formatCompact(staked)} />
-        <Stat k="TVL" v={formatUsd(tvlUsd)} />
         <Stat k="Duration" v={`${data.durationDays}d`} />
         <Stat k="Stake tax" v={`${(data.stakeTaxBps / 100).toFixed(2)}%`} />
       </dl>

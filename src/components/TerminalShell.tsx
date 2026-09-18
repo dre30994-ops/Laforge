@@ -51,7 +51,7 @@ export function TerminalShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="terminal-root terminal-grid">
       <div className="relative flex min-h-screen">
-        <div className="hidden lg:block w-[248px] shrink-0 p-4 sticky top-0 h-screen">
+        <div className="hidden lg:block w-[248px] shrink-0 p-4 sticky top-0 h-screen overflow-hidden">
           <Sidebar />
         </div>
 
