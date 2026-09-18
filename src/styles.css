@@ -1037,3 +1037,26 @@ h1, h2, h3, h4 {
   [role="button"]:not(:disabled) { cursor: pointer; }
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Privy modal: kill the built-in backdrop blur                        */
+/* Privy ships `#privy-dialog-backdrop { backdrop-filter: blur(3px) }` */
+/* (see @privy-io/react-auth). Against the video/glass background that  */
+/* blur washes out the whole viewport and makes the modal itself look  */
+/* out of focus. Replace it with a plain dim scrim and force the        */
+/* dialog surface to render crisp (no inherited/backdrop filter).       */
+/* ------------------------------------------------------------------ */
+#privy-dialog-backdrop {
+  -webkit-backdrop-filter: blur(0) !important;
+  backdrop-filter: blur(0) !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+#privy-dialog,
+#privy-modal-content,
+[data-privy-dialog],
+[aria-labelledby="privy-dialog-title"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+}
