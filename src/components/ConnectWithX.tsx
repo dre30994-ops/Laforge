@@ -86,7 +86,7 @@ function ConnectWithXLive() {
           }
           setBusy(true);
           try {
-            await login({ loginMethods: ["twitter"] });
+            await login();
           } catch (e) {
             setError(e instanceof Error ? e.message : "Could not open X login.");
           } finally {

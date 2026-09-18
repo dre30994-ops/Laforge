@@ -834,40 +834,17 @@ h1, h2, h3, h4 {
   transform: scale(0.96);
 }
 
-/*
- * Privy login: raise only the portal root. Never flatten every [id^=privy-]
- * node to the same z-index — that put the blurred overlay on top of the
- * sheet and ate clicks.
- */
-#headlessui-portal-root,
-body > [id*="privy-dialog"],
-body > [id*="privy-modal"],
-body > [data-privy-dialog] {
-  z-index: 2147483000 !important;
-  pointer-events: auto !important;
-  filter: none !important;
-  transform: none !important;
+/* Privy owns this portal. Only lift it above our chrome; do not restyle it. */
+#headlessui-portal-root {
+  z-index: 2147483000;
+  isolation: isolate;
 }
 
-#headlessui-portal-root [role="dialog"],
-[data-privy-dialog] [role="dialog"],
-[id*="privy-dialog"] [role="dialog"] {
-  pointer-events: auto !important;
-  filter: none !important;
-  -webkit-filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-body.privy-open .music-modal,
-body.privy-open .forge-burger,
-body.privy-open .forge-drawer,
-body.privy-open .forge-drawer-scrim,
-body.privy-open .trending-ticker {
-  pointer-events: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  filter: none !important;
+body:has(#headlessui-portal-root [role="dialog"]) .music-modal,
+body:has(#headlessui-portal-root [role="dialog"]) .forge-burger,
+body:has(#headlessui-portal-root [role="dialog"]) .forge-drawer,
+body:has(#headlessui-portal-root [role="dialog"]) .forge-drawer-scrim {
+  pointer-events: none;
 }
 
 .forge-burger {
