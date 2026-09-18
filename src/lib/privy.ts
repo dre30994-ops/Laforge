@@ -1,3 +1,4 @@
+import { createContext } from "react";
 import { publicEnv } from "@/lib/publicEnv";
 import { robinhoodChain, EVM_CHAINS } from "@/lib/chains";
 import type { PrivyClientConfig } from "@privy-io/react-auth";
@@ -7,6 +8,8 @@ declare global {
     __PRIVY_APP_ID__?: string;
   }
 }
+
+export const PrivyReadyContext = createContext(false);
 
 function fromProcess(): string {
   if (typeof process === "undefined" || !process.env) return "";
@@ -25,8 +28,30 @@ function fromWindow(): string {
   return typeof id === "string" ? id : "";
 }
 
+export function cachePrivyAppId(id: string) {
+  if (typeof window === "undefined") return;
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return;
+  window.__PRIVY_APP_ID__ = id;
+}
+
 export function privyAppId(): string {
   return fromWindow() || publicEnv("PRIVY_APP_ID") || publicEnv("PRIVY_ID") || fromProcess();
+}
+
+export async function resolvePrivyAppId(): Promise<string> {
+  const existing = privyAppId();
+  if (existing) return existing;
+  try {
+    const res = await fetch("/api/privy-id", { cache: "no-store" });
+    const data = (await res.json()) as { appId?: string };
+    if (data.appId) {
+      cachePrivyAppId(data.appId);
+      return data.appId;
+    }
+  } catch {
+    /* env not available */
+  }
+  return "";
 }
 
 export const privyConfig: PrivyClientConfig = {

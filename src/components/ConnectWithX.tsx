@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { privyAppId } from "@/lib/privy";
+import { resolvePrivyAppId, PrivyReadyContext } from "@/lib/privy";
 
 function XMark({ className }: { className?: string }) {
   return (
@@ -99,21 +99,27 @@ function ConnectWithXLive() {
 }
 
 export function ConnectWithX() {
-  const [live, setLive] = useState(false);
+  const privyReady = useContext(PrivyReadyContext);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (privyAppId()) setLive(true);
-  }, []);
+    if (!privyReady) void resolvePrivyAppId();
+  }, [privyReady]);
 
-  if (!live) {
+  if (!privyReady) {
     return (
       <ConnectWithXButton
         label="Connect with X"
         error={error}
         onClick={() => {
-          if (privyAppId()) setLive(true);
-          else setError("Missing Privy app ID. Add VITE_PRIVY_APP_ID on Vercel and redeploy.");
+          void (async () => {
+            const id = await resolvePrivyAppId();
+            if (!id) {
+              setError(
+                "Privy App ID is not on this deploy. In Vercel → Settings → Environment Variables add VITE_PRIVY_APP_ID (the App ID from dashboard.privy.io), apply to Production, then Redeploy.",
+              );
+            }
+          })();
         }}
       />
     );

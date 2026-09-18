@@ -12,7 +12,7 @@ import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 import type { Adapter } from "@solana/wallet-adapter-base";
 import { wagmiConfig } from "@/lib/chains";
-import { privyAppId, privyConfig } from "@/lib/privy";
+import { privyAppId, privyConfig, resolvePrivyAppId, PrivyReadyContext } from "@/lib/privy";
 import { PrivyWagmiSync } from "@/components/PrivyWagmiSync";
 import { PrivyErrorBoundary } from "@/components/PrivyErrorBoundary";
 
@@ -25,10 +25,13 @@ export function WalletContextProvider({ children }: { children: React.ReactNode 
   const queryClient = useMemo(() => new QueryClient(), []);
   const [solanaWallets, setSolanaWallets] = useState<Adapter[]>([]);
   const [clientReady, setClientReady] = useState(false);
-  const appId = clientReady ? privyAppId() : "";
+  const [appId, setAppId] = useState("");
 
   useEffect(() => {
     setClientReady(true);
+    void resolvePrivyAppId().then((id) => {
+      if (id) setAppId(id);
+    });
   }, []);
 
   useEffect(() => {
@@ -50,13 +53,17 @@ export function WalletContextProvider({ children }: { children: React.ReactNode 
 
   // Privy is browser-only. Mounting it during SSR (or letting it throw) paints
   // a blank white page. Wait until the client, then isolate failures.
-  if (!appId || !clientReady) return shell(false);
+  if (!appId || !clientReady) {
+    return <PrivyReadyContext.Provider value={false}>{shell(false)}</PrivyReadyContext.Provider>;
+  }
 
   return (
-    <PrivyErrorBoundary fallback={shell(false)}>
-      <PrivyProvider appId={appId} config={privyConfig}>
-        {shell(true)}
-      </PrivyProvider>
-    </PrivyErrorBoundary>
+    <PrivyReadyContext.Provider value={true}>
+      <PrivyErrorBoundary fallback={shell(false)}>
+        <PrivyProvider appId={appId} config={privyConfig}>
+          {shell(true)}
+        </PrivyProvider>
+      </PrivyErrorBoundary>
+    </PrivyReadyContext.Provider>
   );
 }

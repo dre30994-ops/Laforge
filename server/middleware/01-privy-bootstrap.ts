@@ -8,14 +8,23 @@ function runtimePrivyAppId(): string {
   return /^[a-zA-Z0-9_-]+$/.test(id) ? id : "";
 }
 
+type NitroEvent = { url?: { pathname?: string } };
+
 /**
- * Stamp the Privy app ID into HTML at runtime so the client can read it even
- * when Vite didn't inline VITE_PRIVY_APP_ID at build time.
+ * Serve the Privy app ID from Vercel runtime env, and stamp it into HTML.
  */
 export default async function privyBootstrapMiddleware(
-  _event: unknown,
+  event: NitroEvent,
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
+  const path = event.url?.pathname ?? "";
+  if (path === "/api/privy-id") {
+    return Response.json(
+      { appId: runtimePrivyAppId() },
+      { headers: { "cache-control": "no-store" } },
+    );
+  }
+
   const result = await next();
   const id = runtimePrivyAppId();
   if (!id || !(result instanceof Response)) return result;
@@ -24,7 +33,11 @@ export default async function privyBootstrapMiddleware(
 
   const html = await result.text();
   if (html.includes("window.__PRIVY_APP_ID__")) {
-    return new Response(html, { status: result.status, statusText: result.statusText, headers: result.headers });
+    return new Response(html, {
+      status: result.status,
+      statusText: result.statusText,
+      headers: result.headers,
+    });
   }
   const snippet = `<script>window.__PRIVY_APP_ID__=${JSON.stringify(id)};</script>`;
   const patched = html.includes("</head>")
