@@ -16,7 +16,8 @@ const ROBINHOOD_FACTORY = "0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691";
 
 export default buildModule("MarketingDeskModule", (m) => {
   const fee = m.getParameter("fee", MARKETING_FEE);
-  const feeRecipient = m.getParameter("feeRecipient", m.getAccount(0));
+  // Required. Never default to the deployer.
+  const feeRecipient = m.getParameter("feeRecipient");
   const factory = m.getParameter("factory", ROBINHOOD_FACTORY);
 
   const desk = m.contract("MarketingDesk", [fee, feeRecipient, factory]);

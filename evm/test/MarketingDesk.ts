@@ -5,21 +5,23 @@ import { MARKETING_FEE, TIER_BRONZE, BRONZE_FEE, createPool, deployFixture } fro
 const SLOT = 12n * 60n * 60n;
 
 describe("MarketingDesk", async () => {
-  it("unlocks Marketing for the operator who pays the exact fee", async () => {
+  it("unlocks Marketing and forwards the fee to the treasury, not the deployer", async () => {
     const fx = await deployFixture();
     const pool = await createPool(fx, { tier: TIER_BRONZE, value: BRONZE_FEE, durationDays: 2n });
     const desk = await fx.viem.deployContract("MarketingDesk", [
       MARKETING_FEE,
-      fx.deployer.account.address,
+      fx.treasury.account.address,
       fx.factory.address,
     ]);
 
-    const before = await fx.publicClient.getBalance({ address: fx.deployer.account.address });
+    const beforeTreasury = await fx.publicClient.getBalance({ address: fx.treasury.account.address });
+    const beforeDeployer = await fx.publicClient.getBalance({ address: fx.deployer.account.address });
     await desk.write.buyMarketing([pool.address], {
       account: fx.launcher.account,
       value: MARKETING_FEE,
     });
-    const after = await fx.publicClient.getBalance({ address: fx.deployer.account.address });
+    const afterTreasury = await fx.publicClient.getBalance({ address: fx.treasury.account.address });
+    const afterDeployer = await fx.publicClient.getBalance({ address: fx.deployer.account.address });
 
     assert.equal(await desk.read.hasMarketing([pool.address]), true);
     assert.equal(await pool.read.tier(), TIER_BRONZE);
@@ -28,7 +30,21 @@ describe("MarketingDesk", async () => {
     const unlocked = (await desk.read.unlockedAt([pool.address])) as bigint;
     assert.ok(unlocked > 0n);
     assert.ok(until >= unlocked + SLOT);
-    assert.ok(after > before);
+    assert.equal(afterTreasury - beforeTreasury, MARKETING_FEE);
+    assert.equal(afterDeployer, beforeDeployer);
+  });
+
+  it("rejects the deployer as fee recipient", async () => {
+    const fx = await deployFixture();
+    await assert.rejects(
+      () =>
+        fx.viem.deployContract("MarketingDesk", [
+          MARKETING_FEE,
+          fx.deployer.account.address,
+          fx.factory.address,
+        ]),
+      /FeeRecipientIsDeployer/,
+    );
   });
 
   it("rejects the wrong fee", async () => {
@@ -36,7 +52,7 @@ describe("MarketingDesk", async () => {
     const pool = await createPool(fx, { tier: TIER_BRONZE, value: BRONZE_FEE, durationDays: 2n });
     const desk = await fx.viem.deployContract("MarketingDesk", [
       MARKETING_FEE,
-      fx.deployer.account.address,
+      fx.treasury.account.address,
       fx.factory.address,
     ]);
     await assert.rejects(
@@ -54,7 +70,7 @@ describe("MarketingDesk", async () => {
     const pool = await createPool(fx, { tier: TIER_BRONZE, value: BRONZE_FEE, durationDays: 2n });
     const desk = await fx.viem.deployContract("MarketingDesk", [
       MARKETING_FEE,
-      fx.deployer.account.address,
+      fx.treasury.account.address,
       fx.factory.address,
     ]);
     await desk.write.buyMarketing([pool.address], {
@@ -75,7 +91,7 @@ describe("MarketingDesk", async () => {
     const pool = await createPool(fx, { tier: TIER_BRONZE, value: BRONZE_FEE, durationDays: 2n });
     const desk = await fx.viem.deployContract("MarketingDesk", [
       MARKETING_FEE,
-      fx.deployer.account.address,
+      fx.treasury.account.address,
       fx.factory.address,
     ]);
     await desk.write.buyMarketing([pool.address], {
@@ -97,7 +113,7 @@ describe("MarketingDesk", async () => {
     const pool = await createPool(fx, { tier: TIER_BRONZE, value: BRONZE_FEE, durationDays: 2n });
     const desk = await fx.viem.deployContract("MarketingDesk", [
       MARKETING_FEE,
-      fx.deployer.account.address,
+      fx.treasury.account.address,
       fx.deployer.account.address,
     ]);
     await assert.rejects(

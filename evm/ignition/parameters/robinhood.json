@@ -1,7 +1,10 @@
 {
+  "StakingFactoryModule": {
+    "feeRecipient": "0x7f8cEDEa01bee1a975967137DfBFaeC7052D1513"
+  },
   "MarketingDeskModule": {
     "factory": "0x0E69CcAfB4f8bFBA970750703fc3154ff0D01691",
     "fee": "60000000000000000n",
-    "feeRecipient": "0xPASTE_TREASURY_ADDRESS_HERE"
+    "feeRecipient": "0x7f8cEDEa01bee1a975967137DfBFaeC7052D1513"
   }
 }

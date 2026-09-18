@@ -56,6 +56,7 @@ contract StakingFactory is ReentrancyGuard {
         if (bronzeFee == 0) revert ZeroFee();
         if (!(bronzeFee < ecosystemFee && ecosystemFee < marketingFee)) revert BadFeeOrder();
         if (feeRecipient == address(0)) revert ZeroAddress();
+        if (feeRecipient == msg.sender) revert FeeRecipientIsDeployer();
         BRONZE_FEE = bronzeFee;
         ECOSYSTEM_FEE = ecosystemFee;
         MARKETING_FEE = marketingFee;
@@ -94,6 +95,7 @@ contract StakingFactory is ReentrancyGuard {
     error ZeroFunding();
     error BadFeeOrder();
     error ZeroFee();
+    error FeeRecipientIsDeployer();
     error ZeroMinStake();
 
     /// Deploy, fund, and start a staking pool for `token` in a single

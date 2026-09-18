@@ -101,22 +101,11 @@ export default function DocsPage() {
               </p>
             </Doc>
 
-            <Doc title="How is TVL valued?">
-              <p>
-                Tokens locked in a pool are priced from the deepest DEX pair on that
-                pool&rsquo;s chain. Launch-pad tokens resolve from DexScreener (with
-                GeckoTerminal as backup) so they don&rsquo;t wait on a CEX listing.
-                Protocol Total Staked Value is the USD sum of those balances across
-                every launch chain.
-              </p>
-            </Doc>
-
             <Doc title="More chains are on the way">
               <p>
                 Creating a pool from the terminal is live on Robinhood and Ethereum today. More
                 networks are being forged for the create picker and will appear there when
-                they&rsquo;re ready — same app, same pools, no new download. Tokens already
-                staked on other launch chains are still valued in USD on this terminal.
+                they&rsquo;re ready — same app, same pools, no new download.
               </p>
             </Doc>
 

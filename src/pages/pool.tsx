@@ -23,7 +23,6 @@ import { ApyCalculator } from "@/components/ApyCalculator";
 import { RewardChart } from "@/components/RewardChart";
 import { HeroMetrics } from "@/components/HeroMetrics";
 import { poolToStats } from "@/lib/poolStats";
-import { TokenPriceChip } from "@/components/TokenPriceChip";
 import { SampleDashboardsBanner } from "@/components/SampleDashboards";
 
 const EMPTY_DESK: MarketingStatus = { unlocked: false, trending: false, trendingUntil: 0 };
@@ -210,9 +209,6 @@ export default function PoolDashboardPage() {
                             </a>
                           </p>
                         )}
-                      <div className="mt-2">
-                        <TokenPriceChip chainId={pool.chainId} token={pool.token} />
-                      </div>
                       {branded && (
                         <PoolHeaderSocials socials={meta?.socials} />
                       )}

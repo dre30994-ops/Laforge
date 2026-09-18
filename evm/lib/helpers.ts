@@ -23,7 +23,7 @@ export async function deployFixture() {
     BRONZE_FEE,
     ECOSYSTEM_FEE,
     MARKETING_FEE,
-    deployer.account.address,
+    treasury.account.address,
   ]);
 
   const token = await viem.deployContract("contracts/mocks/MockERC20.sol:MockERC20", ["Mock", "MOCK", 18]);

@@ -1,7 +1,5 @@
 import { formatUnits } from "viem";
 import type { PoolSummary } from "@/lib/factoryClient";
-import { usePoolMarket } from "@/hooks/usePoolMarket";
-import { formatUsd, formatUsdPrice, quoteLabel } from "@/lib/tokenQuote";
 
 function formatCompact(n: number): string {
   if (!Number.isFinite(n)) return "0";
@@ -23,23 +21,10 @@ function fmt(n: number | null): string {
 }
 
 export function PoolVaultStats({ pool }: { pool: PoolSummary }) {
-  const market = usePoolMarket(pool);
   const dec = pool.decimals || 18;
   const locked = asTokens(pool.stakeVaultBalance, dec);
   const left = asTokens(pool.rewardVaultBalance, dec);
   const emitted = asTokens(pool.totalEmitted, dec);
-  const quote = market.quote;
-  const price = quote?.priceUsd ?? null;
-  const qualityNote =
-    quote?.quality === "thin"
-      ? "thin launch-pad liquidity"
-      : quote?.quality === "stale"
-        ? "stale quote"
-        : quote
-          ? quoteLabel(quote)
-          : market.loading
-            ? "quoting…"
-            : "awaiting DEX pair";
 
   const rows = [
     {
@@ -57,18 +42,10 @@ export function PoolVaultStats({ pool }: { pool: PoolSummary }) {
       v: fmt(emitted),
       sub: "paid out",
     },
-    {
-      k: "USD value locked",
-      v: formatUsd(market.tvlUsd),
-      sub:
-        price != null
-          ? `${formatUsdPrice(price)} · staked + rewards · ${qualityNote}`
-          : qualityNote,
-    },
   ];
 
   return (
-    <section className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="pool-vault-stats">
+    <section className="grid grid-cols-1 sm:grid-cols-3 gap-3" data-testid="pool-vault-stats">
       {rows.map((row) => (
         <div key={row.k} className="glass !rounded-2xl p-4">
           <div className="mono text-lg font-bold text-gold-neon leading-tight">{row.v}</div>

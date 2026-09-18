@@ -36,10 +36,12 @@ contract MarketingDesk is ReentrancyGuard {
     error BadFee();
     error UnknownPool();
     error FeeTransferFailed();
+    error FeeRecipientIsDeployer();
 
     constructor(uint256 fee_, address recipient_, address factory_) {
         if (fee_ == 0) revert ZeroFee();
         if (recipient_ == address(0) || factory_ == address(0)) revert ZeroAddress();
+        if (recipient_ == msg.sender) revert FeeRecipientIsDeployer();
         FEE = fee_;
         FEE_RECIPIENT = recipient_;
         FACTORY = factory_;

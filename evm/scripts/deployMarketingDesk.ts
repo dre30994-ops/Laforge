@@ -44,6 +44,11 @@ async function main() {
 
   const { viem } = await network.create();
   const [deployer] = await viem.getWalletClients();
+  if (feeRecipient.toLowerCase() === deployer.account.address.toLowerCase()) {
+    console.error("FEE_RECIPIENT cannot be the deployer. Use the treasury wallet.");
+    process.exitCode = 1;
+    return;
+  }
   const publicClient = await viem.getPublicClient();
   const chainId = await publicClient.getChainId();
   const cfg = BY_CHAIN[chainId];

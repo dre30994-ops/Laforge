@@ -57,4 +57,33 @@ describe("StakingFactory", async () => {
     const fx = await deployFixture();
     await assert.rejects(() => createPool(fx, { stakeTaxBps: 100n }), /TaxWithoutTreasury/);
   });
+
+  it("rejects the deployer as fee recipient", async () => {
+    const fx = await deployFixture();
+    await assert.rejects(
+      () =>
+        fx.viem.deployContract("StakingFactory", [
+          BRONZE_FEE,
+          ECOSYSTEM_FEE,
+          MARKETING_FEE,
+          fx.deployer.account.address,
+        ]),
+      /FeeRecipientIsDeployer/,
+    );
+  });
+
+  it("forwards launch ETH to the treasury, not the deployer", async () => {
+    const fx = await deployFixture();
+    const beforeTreasury = await fx.publicClient.getBalance({ address: fx.treasury.account.address });
+    const beforeDeployer = await fx.publicClient.getBalance({ address: fx.deployer.account.address });
+    await createPool(fx);
+    const afterTreasury = await fx.publicClient.getBalance({ address: fx.treasury.account.address });
+    const afterDeployer = await fx.publicClient.getBalance({ address: fx.deployer.account.address });
+    assert.equal(afterTreasury - beforeTreasury, ECOSYSTEM_FEE);
+    assert.equal(afterDeployer, beforeDeployer);
+    assert.equal(
+      (await fx.factory.read.FEE_RECIPIENT()).toLowerCase(),
+      fx.treasury.account.address.toLowerCase(),
+    );
+  });
 });

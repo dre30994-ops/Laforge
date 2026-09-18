@@ -9,7 +9,8 @@ export default buildModule("StakingFactoryModule", (m) => {
   const bronzeFee = m.getParameter("bronzeFee", BRONZE_FEE);
   const ecosystemFee = m.getParameter("ecosystemFee", ECOSYSTEM_FEE);
   const marketingFee = m.getParameter("marketingFee", MARKETING_FEE);
-  const feeRecipient = m.getParameter("feeRecipient", m.getAccount(0));
+  // Required. Never default to the deployer — launch ETH must hit the treasury.
+  const feeRecipient = m.getParameter("feeRecipient");
 
   const factory = m.contract("StakingFactory", [
     bronzeFee,

@@ -35,23 +35,33 @@ npx hardhat keystore set ROBINHOOD_PRIVATE_KEY
 Then:
 
 ```bash
-npx hardhat ignition deploy ignition/modules/StakingFactory.ts --network robinhood
-```
-
-Constructor defaults match the live Robinhood factory (0.01 / 0.03 / 0.06 ETH). Override `feeRecipient` if the deployer account should not collect fees:
-
-```bash
 npx hardhat ignition deploy ignition/modules/StakingFactory.ts --network robinhood \
-  --parameters '{"StakingFactoryModule":{"feeRecipient":"0xd196eC7D3d77bc914F0193450CFedcf483c5fF13"}}'
+  --parameters ignition/parameters/robinhood.json
 ```
 
-Or the viem script:
+`feeRecipient` is **required** and **cannot be the deployer**. The live Robinhood
+factory (`0x0E69…1691`) was deployed with `FEE_RECIPIENT` = the deployer
+(`0x8e63…40C9`). That slot is immutable, so every bronze / ecosystem / marketing
+launch fee on that factory still lands on the deployer.
+
+To collect launch ETH in the protocol treasury, deploy a **new** factory (and a
+new Marketing desk bound to it) with:
+
+```
+FEE_RECIPIENT=0x7f8cEDEa01bee1a975967137DfBFaeC7052D1513
+```
+
+Constructor defaults match the live Robinhood fees (0.01 / 0.03 / 0.06 ETH).
+The viem script refuses to deploy if `FEE_RECIPIENT` is missing or equals the
+deployer:
 
 ```bash
 npx hardhat run scripts/deploy.ts --network robinhood
 ```
 
-Point the app at the new address (`STAKING_FACTORY`). Existing pools on `0x84ee…0c6f` are unchanged.
+Point the app at the new address (`STAKING_FACTORY_ROBINHOOD` / `STAKING_FACTORY`).
+Existing pools on the old factory are unchanged. Stake/unstake **token tax**
+already goes to each pool's create-form treasury, not `FEE_RECIPIENT`.
 
 ## Deploy the Marketing desk (sidecar)
 
