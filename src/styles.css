@@ -235,6 +235,7 @@ h1, h2, h3, h4 {
 }
 
 .terminal-root {
+  isolation: isolate;
   background:
     radial-gradient(1200px 600px at 78% -10%, rgba(212, 165, 40, 0.10), transparent 60%),
     radial-gradient(900px 500px at 0% 100%, rgba(200, 151, 26, 0.08), transparent 55%),
@@ -247,9 +248,9 @@ h1, h2, h3, h4 {
 /* Faint technical grid backdrop */
 .terminal-grid::before {
   content: "";
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   background-image:
     linear-gradient(var(--hairline) 1px, transparent 1px),
@@ -623,7 +624,7 @@ h1, h2, h3, h4 {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 60;
+  z-index: 40;
   height: 36px;
   display: flex;
   align-items: stretch;
@@ -778,7 +779,7 @@ h1, h2, h3, h4 {
   right: max(0.75rem, env(safe-area-inset-right));
   left: auto;
   bottom: auto;
-  z-index: 45;
+  z-index: 40;
   min-width: 0;
   padding: 0.4rem 0.45rem;
   border-radius: 999px;
@@ -834,24 +835,30 @@ h1, h2, h3, h4 {
   transform: scale(0.96);
 }
 
-/* Privy owns this portal. Only lift it above our chrome; do not restyle it. */
-#headlessui-portal-root {
-  z-index: 2147483000;
-  isolation: isolate;
+/* Privy dialog is z-index 50. Keep our chrome under it; lift the portal above the page. */
+#headlessui-portal-root,
+#headlessui-portal-root > * {
+  z-index: 2147483000 !important;
 }
 
+body:has(#headlessui-portal-root [role="dialog"]) .glass,
+body:has(#headlessui-portal-root [role="dialog"]) .glass-gold,
 body:has(#headlessui-portal-root [role="dialog"]) .music-modal,
+body:has(#headlessui-portal-root [role="dialog"]) .trending-ticker,
 body:has(#headlessui-portal-root [role="dialog"]) .forge-burger,
 body:has(#headlessui-portal-root [role="dialog"]) .forge-drawer,
 body:has(#headlessui-portal-root [role="dialog"]) .forge-drawer-scrim {
-  pointer-events: none;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .forge-burger {
   position: fixed;
   top: calc(var(--trending-ticker-h, 0px) + 0.7rem);
   left: max(0.75rem, env(safe-area-inset-left));
-  z-index: 66;
+  z-index: 40;
   width: 44px;
   height: 44px;
   border-radius: 999px;
