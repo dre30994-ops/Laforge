@@ -6,6 +6,7 @@ import { WalletContextProvider } from "@/components/WalletProvider";
 import { MusicProvider } from "@/components/MusicProvider";
 import { MusicToggle } from "@/components/MusicToggle";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
+import { LanguageProvider } from "@/components/LanguageProvider";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Laforge — Staking Terminal";
@@ -30,7 +31,7 @@ export const Route = createRootRoute({
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap",
       },
     ],
   }),
@@ -49,15 +50,17 @@ function RootDocument() {
       >
         <PreviewHostBridge />
         <AuthProvider>
-          <WalletContextProvider>
-            <ChainProvider>
-              <MusicProvider>
-                <TrendingCarousel />
-                <Outlet />
-                <MusicToggle />
-              </MusicProvider>
-            </ChainProvider>
-          </WalletContextProvider>
+          <LanguageProvider>
+            <WalletContextProvider>
+              <ChainProvider>
+                <MusicProvider>
+                  <TrendingCarousel />
+                  <Outlet />
+                  <MusicToggle />
+                </MusicProvider>
+              </ChainProvider>
+            </WalletContextProvider>
+          </LanguageProvider>
         </AuthProvider>
         <Scripts />
       </body>

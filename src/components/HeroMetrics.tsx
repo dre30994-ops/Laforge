@@ -10,6 +10,7 @@ import {
 import { formatUsd } from "@/lib/tokenQuote";
 import { chainTvlCaption, useProtocolTvl } from "@/hooks/useProtocolTvl";
 import { EVM_NETWORKS, isVisibleNetwork } from "@/lib/evmNetworks";
+import { useI18n } from "@/components/LanguageProvider";
 
 /**
  * Top-left hero summary: Total Staked Value plus a live, continuously
@@ -29,6 +30,7 @@ export function HeroMetrics({
   compact?: boolean;
   hideTvl?: boolean;
 } = {}) {
+  const { t } = useI18n();
   const live = usePoolStats();
   const stats = statsProp ?? live;
   const protocolMode = !statsProp && !compact;
@@ -80,13 +82,13 @@ export function HeroMetrics({
       {!hideTvl && (
       <div className={`glass glass-gold relative overflow-hidden ${compact ? "p-3" : "p-6"}`}>
         <div className={`flex items-center justify-between ${compact ? "mb-1.5" : "mb-3"}`}>
-          <span className="label-term">Total Staked Value</span>
+          <span className="label-term">{t("metrics.tvl")}</span>
           {protocolMode ? (
             <span className="label-term text-pos flex items-center gap-1.5">
               <span className="pulse-dot" />
               {protocol.loading
-                ? "quoting…"
-                : `${protocol.pools} pool${protocol.pools === 1 ? "" : "s"}`}
+                ? t("metrics.quoting")
+                : t(protocol.pools === 1 ? "metrics.pools" : "metrics.poolsMany", { n: protocol.pools })}
             </span>
           ) : (
             <span className="label-term text-pos flex items-center gap-1.5">
@@ -119,7 +121,7 @@ export function HeroMetrics({
               <span className={`mono text-mid ${compact ? "text-xs" : "text-sm"}`}>
                 {formatCompact(toTokens(stats.yourStake))}
               </span>
-              <span className="label-term !tracking-wide">your stake</span>
+              <span className="label-term !tracking-wide">{t("metrics.yourStake")}</span>
             </>
           )}
         </div>
@@ -143,9 +145,9 @@ export function HeroMetrics({
 
       <div className={`glass relative overflow-hidden ${compact ? "p-3" : "p-6"}`}>
         <div className={`flex items-center justify-between ${compact ? "mb-1.5" : "mb-3"}`}>
-          <span className="label-term">Accumulating Yield</span>
+          <span className="label-term">{t("metrics.yield")}</span>
           <span className="flex items-center gap-1.5 label-term text-pos">
-            <span className="pulse-dot" /> live
+            <span className="pulse-dot" /> {t("metrics.live")}
           </span>
         </div>
         <div
@@ -162,7 +164,7 @@ export function HeroMetrics({
           <span className={`mono text-amber-neon ${compact ? "text-xs" : "text-sm"}`}>
             +{formatCompact(dailyTokens)}
           </span>
-          <span className="label-term !tracking-wide">/ day · {TICKS_PER_DAY} ticks</span>
+          <span className="label-term !tracking-wide">{t("metrics.perDay", { n: TICKS_PER_DAY })}</span>
         </div>
       </div>
     </div>

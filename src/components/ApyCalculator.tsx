@@ -10,6 +10,7 @@ import {
   TENURE_MAX_DAYS,
   type PoolStats,
 } from "@/lib/economics";
+import { useI18n } from "@/components/LanguageProvider";
 
 const HORIZON_PRESETS = [1, 7, 14, 30];
 
@@ -47,6 +48,7 @@ function floorPercent2(pct: number): string {
  * through the shared `projectRewards` model so it agrees with the dashboard.
  */
 export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) {
+  const { t } = useI18n();
   const live = usePoolStats();
   const stats = statsProp ?? live;
 
@@ -84,8 +86,8 @@ export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) 
     <div className="glass glass-gold p-5 animate-rise">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-sm font-semibold text-hi tracking-tight">APY Calculator</h2>
-          <p className="label-term mt-0.5">Yield projector</p>
+          <h2 className="text-sm font-semibold text-hi tracking-tight">{t("calc.title")}</h2>
+          <p className="label-term mt-0.5">{t("calc.subtitle")}</p>
         </div>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
           stroke="var(--neon-gold)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -98,7 +100,7 @@ export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) 
 
       {/* Stake input */}
       <label className="block mb-4">
-        <span className="label-term">Stake amount</span>
+        <span className="label-term">{t("calc.stake")}</span>
         <div className="relative mt-1.5">
           <input
             type="text"
@@ -117,7 +119,7 @@ export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) 
       {/* Tenure slider */}
       <div className="mb-4">
         <div className="flex justify-between items-baseline mb-2">
-          <span className="label-term">Tenure · hold time</span>
+          <span className="label-term">{t("calc.tenure")}</span>
           <span className="mono text-sm text-gold-neon">{tenureMultiplier.toFixed(2)}x</span>
         </div>
         <input
@@ -130,14 +132,14 @@ export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) 
           className="slider-term"
         />
         <div className="flex justify-between label-term !text-[9px] mt-1.5">
-          <span>{heldDays === 0 ? "Fresh · 1.00x" : `${heldDays}d held`}</span>
-          <span>Max {TENURE_MAX_DAYS}d · 2.00x</span>
+          <span>{heldDays === 0 ? t("calc.fresh") : t("calc.held", { n: heldDays })}</span>
+          <span>{t("calc.max", { n: TENURE_MAX_DAYS })}</span>
         </div>
       </div>
 
       {/* Horizon presets */}
       <div className="mb-5">
-        <span className="label-term">Horizon</span>
+        <span className="label-term">{t("calc.horizon")}</span>
         <div className="grid grid-cols-4 gap-1.5 mt-1.5">
           {horizons.map((d) => (
             <button
@@ -145,7 +147,7 @@ export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) 
               onClick={() => setHorizonDays(d)}
               className={`pill ${horizonDays === d ? "active" : ""}`}
             >
-              {d}d
+              {t("common.daysShort", { n: d })}
             </button>
           ))}
         </div>
@@ -153,22 +155,22 @@ export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) 
 
       {/* Results */}
       <div className="grid grid-cols-2 gap-2.5">
-        <Readout label="Est. APY" value={hasStake ? floorPercent2(projection.apy) : "—"}
-          sub="compounded" accent="gold" />
-        <Readout label="Est. APR" value={hasStake ? formatPercent(projection.apr) : "—"}
-          sub="simple" accent="gold" />
-        <Readout label={`Rewards ${horizonDays}d`}
+        <Readout label={t("calc.apy")} value={hasStake ? floorPercent2(projection.apy) : "—"}
+          sub={t("calc.compounded")} accent="gold" />
+        <Readout label={t("calc.apr")} value={hasStake ? formatPercent(projection.apr) : "—"}
+          sub={t("calc.simple")} accent="gold" />
+        <Readout label={t("calc.rewards", { n: horizonDays })}
           value={hasStake ? formatCompact(toTokens(projection.totalReward)) : "—"}
-          sub="tokens" accent="pos" />
-        <Readout label="Daily yield"
+          sub={t("calc.tokens")} accent="pos" />
+        <Readout label={t("calc.daily")}
           value={hasStake ? formatCompact(toTokens(projection.dailyReward)) : "—"}
-          sub="tokens/day" accent="pos" />
+          sub={t("calc.perDay")} accent="pos" />
       </div>
 
       {/* Pool share */}
       <div className="mt-4 pt-4 border-t border-black/[0.06]">
         <div className="flex justify-between items-center mb-1.5">
-          <span className="label-term">Share of emissions</span>
+          <span className="label-term">{t("calc.share")}</span>
           <span className="mono text-xs text-gold-neon">
             {hasStake ? `${(projection.shareOfPool * 100).toFixed(3)}%` : "—"}
           </span>
@@ -183,8 +185,7 @@ export function ApyCalculator({ stats: statsProp }: { stats?: PoolStats } = {}) 
           />
         </div>
         <p className="label-term !text-[9px] !tracking-normal !normal-case mt-2.5 leading-snug text-lo">
-          Assumes current emission rate and pool composition hold. Actual yield varies
-          with TVL, the emission ramp, and operator top-ups.
+          {t("calc.disclaimer")}
         </p>
       </div>
     </div>

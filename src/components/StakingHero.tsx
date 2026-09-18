@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
 import { EthereumMark, GoldQuestionMark, RobinhoodFeather } from "@/components/BrandMarks";
+import { useI18n } from "@/components/LanguageProvider";
 
 /**
  * Dashboard hero band.
@@ -14,22 +15,21 @@ import { EthereumMark, GoldQuestionMark, RobinhoodFeather } from "@/components/B
  * networks still in the forge.
  */
 export function StakingHero() {
+  const { t } = useI18n();
   return (
     <section className="glass glass-gold p-6 md:p-8 animate-rise overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div className="min-w-0">
-          <span className="label-term text-pos">Stake · earn · compound</span>
+          <span className="label-term text-pos">{t("hero.kicker")}</span>
           <h2 className="mt-2 text-2xl md:text-3xl font-semibold tracking-tight leading-tight hero-title-gold">
-            Put your tokens to work.
+            {t("hero.title")}
           </h2>
           <p className="mt-3 text-sm md:text-base text-mid leading-relaxed max-w-md">
-            Earn continuous, auto-accruing yield with a tenure bonus that grows the
-            longer you stake — up to 2.0&times;. No lockups you can't exit, transparent
-            emissions, and rewards that compound in real time.
+            {t("hero.body")}
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <CreatePoolButton label="Create Stake" />
+            <CreatePoolButton label={t("nav.createStake")} />
             <Link
               to="/docs"
               className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl
@@ -37,7 +37,7 @@ export function StakingHero() {
                          hover:border-black/25 hover:bg-black/[0.04] transition-colors"
               style={{ fontFamily: "var(--font-mono, monospace)" }}
             >
-              How it works
+              {t("hero.how")}
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
                 strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M5 12h14" />

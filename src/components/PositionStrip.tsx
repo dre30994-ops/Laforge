@@ -9,6 +9,7 @@ import {
 import { useStaking } from "@/hooks/useStaking";
 import { usePosition } from "@/hooks/usePosition";
 import { useConnectedAccount } from "@/hooks/useConnectedAccount";
+import { useI18n } from "@/components/LanguageProvider";
 
 type Tab = "stake" | "unstake" | "claim";
 
@@ -18,6 +19,7 @@ type Tab = "stake" | "unstake" | "claim";
  * wallet is connected from the sidebar — this strip does not prompt connect.
  */
 export function PositionStrip() {
+  const { t } = useI18n();
   const stats = usePoolStats();
   const [tab, setTab] = useState<Tab>("stake");
   const [amount, setAmount] = useState("");
@@ -43,25 +45,25 @@ export function PositionStrip() {
   });
 
   const metrics = [
-    { label: "Staked", value: formatCompact(toTokens(yourStake)), accent: "hi" },
-    { label: "Tenure mult", value: `${yourMultiplier.toFixed(2)}x`, accent: "gold" },
-    { label: "Pending", value: formatCompact(toTokens(yourPending)), accent: "pos" },
-    { label: "Est. daily", value: formatCompact(toTokens(daily.dailyReward)), accent: "gold" },
-    { label: "Pool avg mult", value: `${stats.poolAvgMultiplier.toFixed(2)}x`, accent: "mid" },
-    { label: "Pool left", value: formatCompact(toTokens(stats.remaining)), accent: "mid" },
+    { key: "staked", value: formatCompact(toTokens(yourStake)), accent: "hi" },
+    { key: "tenure", value: `${yourMultiplier.toFixed(2)}x`, accent: "gold" },
+    { key: "pending", value: formatCompact(toTokens(yourPending)), accent: "pos" },
+    { key: "daily", value: formatCompact(toTokens(daily.dailyReward)), accent: "gold" },
+    { key: "avg", value: `${stats.poolAvgMultiplier.toFixed(2)}x`, accent: "mid" },
+    { key: "left", value: formatCompact(toTokens(stats.remaining)), accent: "mid" },
   ];
 
   const colorFor = (a: string) =>
     a === "pos" ? "text-pos" : a === "gold" ? "text-gold-neon" : a === "mid" ? "text-mid" : "text-hi";
 
-  const actionLabel = tab === "stake" ? "Stake" : tab === "unstake" ? "Unstake" : "Claim rewards";
+  const actionLabel = tab === "stake" ? t("position.stake") : tab === "unstake" ? t("position.unstake") : t("position.claimRewards");
 
   const primaryLabel = !connected
-    ? "Connect Wallet"
+    ? t("wallet.connect")
     : busy
     ? result.status === "signing"
-      ? "Confirm in wallet…"
-      : "Preparing…"
+      ? t("position.confirmWallet")
+      : t("position.preparing")
     : actionLabel;
 
   const handleAction = async () => {
@@ -83,8 +85,8 @@ export function PositionStrip() {
     }
   };
 
-  const switchTab = (t: Tab) => {
-    setTab(t);
+  const switchTab = (next: Tab) => {
+    setTab(next);
     setAmount("");
     reset();
   };
@@ -100,13 +102,13 @@ export function PositionStrip() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch animate-rise">
       <div className="lg:col-span-2 glass p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-hi tracking-tight">Your Position</h2>
-          <span className="label-term">Live</span>
+          <h2 className="text-sm font-semibold text-hi tracking-tight">{t("position.title")}</h2>
+          <span className="label-term">{t("position.live")}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {metrics.map((m) => (
-            <div key={m.label} className="rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
-              <div className="label-term !text-[9px]">{m.label}</div>
+            <div key={m.key} className="rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
+              <div className="label-term !text-[9px]">{t(`position.${m.key}`)}</div>
               <div className={`mono text-lg font-bold ${colorFor(m.accent)} leading-tight mt-1`}>
                 {m.value}
               </div>
@@ -117,14 +119,14 @@ export function PositionStrip() {
 
       <div className="glass glass-gold p-5 flex flex-col">
         <div className="grid grid-cols-3 gap-1.5 mb-4">
-          {(["stake", "unstake", "claim"] as Tab[]).map((t) => (
+          {(["stake", "unstake", "claim"] as Tab[]).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => switchTab(t)}
+              key={tabKey}
+              onClick={() => switchTab(tabKey)}
               disabled={busy}
-              className={`pill ${tab === t ? "active" : ""}`}
+              className={`pill ${tab === tabKey ? "active" : ""}`}
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t(`position.${tabKey}`)}
             </button>
           ))}
         </div>
@@ -132,7 +134,7 @@ export function PositionStrip() {
         {tab !== "claim" ? (
           <label className="block mb-4">
             <div className="flex items-center justify-between">
-              <span className="label-term">Amount</span>
+              <span className="label-term">{t("position.amount")}</span>
               {posEnabled && (
                 <button
                   type="button"
@@ -143,8 +145,9 @@ export function PositionStrip() {
                   }
                   className="label-term !text-[9px] hover:text-gold-neon transition-colors"
                 >
-                  {tab === "stake" ? "Bal" : "Staked"}:{" "}
-                  {formatCompact(toTokens(tab === "stake" ? yourBalance : yourStake))} · MAX
+                  {tab === "stake"
+                    ? t("position.maxBal", { n: formatCompact(toTokens(yourBalance)) })
+                    : t("position.max", { n: formatCompact(toTokens(yourStake)) })}
                 </button>
               )}
             </div>
@@ -160,7 +163,7 @@ export function PositionStrip() {
           </label>
         ) : (
           <div className="mb-4 rounded-xl border border-black/[0.06] bg-black/[0.02] p-4 text-center">
-            <div className="label-term">Claimable</div>
+            <div className="label-term">{t("position.claimable")}</div>
             <div className="mono text-2xl font-bold text-pos mt-1">
               {formatCompact(toTokens(yourPending))}
             </div>
@@ -169,7 +172,7 @@ export function PositionStrip() {
 
         {tab === "unstake" && (
           <p className="label-term !text-[9px] !tracking-normal !normal-case text-amber-neon mb-3">
-            ⚠ Unstaking resets your tenure multiplier to 1.00x. Tax is sent to the pool treasury.
+            ⚠ {t("position.unstakeWarn")}
           </p>
         )}
 
@@ -196,13 +199,13 @@ export function PositionStrip() {
         </button>
         {connected && family !== "solana" && (
           <p className="label-term !text-[9px] !tracking-normal !normal-case mt-2 leading-snug">
-            Stake, unstake, and claim from a pool dashboard. Taxes go to that pool&rsquo;s treasury.
+            {t("position.evmHint")}
           </p>
         )}
 
         {result.status === "success" && result.signature && (
           <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-[11px] text-pos break-all">
-            ✓ Sent.{" "}
+            ✓ {t("position.sent")}{" "}
             <a
               href={`https://explorer.solana.com/tx/${result.signature}?cluster=devnet`}
               target="_blank"

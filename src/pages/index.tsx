@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { OfficialLinks } from "@/components/OfficialLinks";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useI18n } from "@/components/LanguageProvider";
 
 const VIDEOS = [
   "/a.webm",
@@ -14,6 +16,7 @@ const FADE_MS = 3000;
 const FADE_S = FADE_MS / 1000;
 
 export default function LandingPage() {
+  const { t } = useI18n();
   const [slotClip, setSlotClip] = useState<[number, number]>([0, 1]);
   const [frontSlot, setFrontSlot] = useState<0 | 1>(0);
 
@@ -146,24 +149,27 @@ export default function LandingPage() {
       />
 
       <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
-        <OfficialLinks compact />
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <OfficialLinks compact />
+          <LanguageToggle tone="dark" />
+        </div>
         <img
           src="/icon2_nobg.png"
           alt=""
           className="h-16 w-16 mt-6 mb-5 drop-shadow-[0_0_24px_rgba(255,207,77,0.45)]"
         />
         <p className="text-[11px] font-semibold tracking-[0.28em] uppercase text-amber-200/80">
-          Laforge
+          {t("landing.kicker")}
         </p>
         <h1 className="mt-3 text-2xl md:text-3xl font-semibold tracking-tight max-w-xl leading-snug">
-          <span className="text-white/90">Staking </span>
-          <span className="landing-gold-accent">Nexus</span>
-          <span className="text-white/55"> and </span>
-          <span className="text-white/90">Gaming </span>
-          <span className="landing-gold-accent">Terminal</span>
+          <span className="text-white/90">{t("landing.staking")}</span>
+          <span className="landing-gold-accent">{t("landing.nexus")}</span>
+          <span className="text-white/55">{t("landing.and")}</span>
+          <span className="text-white/90">{t("landing.gaming")}</span>
+          <span className="landing-gold-accent">{t("landing.terminal")}</span>
         </h1>
         <p className="mt-4 text-sm md:text-base text-white/70 max-w-md leading-relaxed">
-          Multi-chain staking. Tenure-weighted yield. Marketing that a community can boost.
+          {t("landing.blurb")}
         </p>
         <Link
           to="/dashboard"
@@ -172,7 +178,7 @@ export default function LandingPage() {
             background: "linear-gradient(180deg, var(--neon-gold), var(--amber))",
           }}
         >
-          Enter the terminal
+          {t("landing.enter")}
         </Link>
       </div>
     </div>

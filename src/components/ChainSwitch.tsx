@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useChain } from "@/components/ChainProvider";
+import { useI18n } from "@/components/LanguageProvider";
 import {
   EVM_NETWORKS,
   EVM_VISIBLE_NETWORKS,
@@ -24,6 +25,7 @@ export function ChainSwitch({ compact = false }: { compact?: boolean }) {
     isWalletOnSelected,
     walletConnected,
   } = useChain();
+  const { t, chainLabel, chainShort } = useI18n();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const current = EVM_NETWORKS[networkKey];
@@ -61,9 +63,9 @@ export function ChainSwitch({ compact = false }: { compact?: boolean }) {
     <div className="w-full relative" ref={rootRef} data-testid="chain-switch">
       {!compact && (
         <div className="flex items-center justify-between px-1 mb-1.5">
-          <span className="label-term !text-[9px]">Switch Network</span>
+          <span className="label-term !text-[9px]">{t("network.switch")}</span>
           <span className="label-term !text-[9px] text-hi">
-            {isEvm ? current.short : "Solana"}
+            {isEvm ? chainShort(networkKey, current.short) : t("chain.solana")}
           </span>
         </div>
       )}
@@ -85,7 +87,7 @@ export function ChainSwitch({ compact = false }: { compact?: boolean }) {
         >
           <ChainGlyph name={isEvm ? networkKey : "solana"} />
           <span className="flex-1 text-[11px] font-semibold text-hi truncate">
-            {switching ? "Switching…" : isEvm ? current.label : "Solana"}
+            {switching ? t("pool.switching") : isEvm ? chainLabel(networkKey, current.label) : t("chain.solana")}
           </span>
           <Chevron
             className={`w-3.5 h-3.5 text-lo shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
@@ -125,7 +127,7 @@ export function ChainSwitch({ compact = false }: { compact?: boolean }) {
                 >
                   <ChainGlyph name={key} />
                   <span className="flex-1 text-[11px] font-semibold whitespace-nowrap">
-                    {key === "hyperevm" ? n.label : n.short}
+                    {key === "hyperevm" ? chainLabel(key, n.label) : chainShort(key, n.short)}
                   </span>
                   {key === "robinhood" ? (
                     <span
@@ -135,7 +137,7 @@ export function ChainSwitch({ compact = false }: { compact?: boolean }) {
                         background: "rgba(200,151,26,0.14)",
                       }}
                     >
-                      Primary
+                      {t("common.primary")}
                     </span>
                   ) : (
                     <span className="label-term !text-[8px] !tracking-wider shrink-0">{n.nativeSymbol}</span>
@@ -171,7 +173,7 @@ export function ChainSwitch({ compact = false }: { compact?: boolean }) {
               }
             >
               <ChainGlyph name="solana" />
-              <span className="flex-1">Solana</span>
+              <span className="flex-1">{t("chain.solana")}</span>
               <span className="label-term !text-[8px] !tracking-wider">SOL</span>
             </button>
           </li>

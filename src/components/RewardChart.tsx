@@ -8,6 +8,7 @@ import {
   PROGRAM_DAYS,
   type PoolStats,
 } from "@/lib/economics";
+import { useI18n } from "@/components/LanguageProvider";
 
 interface Point {
   day: number;
@@ -25,6 +26,7 @@ interface Point {
  * then settles — a realistic accrual shape.
  */
 export function RewardChart({ stats: statsProp }: { stats?: PoolStats } = {}) {
+  const { t } = useI18n();
   const live = usePoolStats();
   const stats = statsProp ?? live;
   const gradId = useId();
@@ -89,15 +91,15 @@ export function RewardChart({ stats: statsProp }: { stats?: PoolStats } = {}) {
       <div className="flex items-center justify-between mb-1">
         <div>
           <h2 className="text-sm font-semibold text-hi tracking-tight">
-            Reward Growth
+            {t("yieldPage.title")}
           </h2>
-          <p className="label-term mt-0.5">Cumulative yield · {days}-day program</p>
+          <p className="label-term mt-0.5">{t("yieldPage.cumulative", { n: days })}</p>
         </div>
         <div className="text-right">
           <div className="mono text-lg text-gold-neon leading-none">
             {formatCompact(total)}
           </div>
-          <div className="label-term mt-1">projected total</div>
+          <div className="label-term mt-1">{t("yieldPage.projected")}</div>
         </div>
       </div>
 

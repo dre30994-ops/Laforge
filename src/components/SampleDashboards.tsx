@@ -3,6 +3,7 @@ import { PoolCard, type CardData } from "@/components/PoolDirectory";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
 import { getMockPools, mockMetaMap } from "@/lib/mockPools";
 import { metaForPool } from "@/lib/poolMeta";
+import { useI18n } from "@/components/LanguageProvider";
 
 function sampleCards(): CardData[] {
   const meta = mockMetaMap();
@@ -14,6 +15,7 @@ function sampleCards(): CardData[] {
 }
 
 export function SampleDashboardsBanner() {
+  const { t } = useI18n();
   return (
     <div
       className="rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
@@ -25,10 +27,9 @@ export function SampleDashboardsBanner() {
       role="status"
     >
       <div>
-        <p className="text-sm font-semibold text-hi">Sample data. Not live.</p>
+        <p className="text-sm font-semibold text-hi">{t("sample.title")}</p>
         <p className="text-xs text-mid mt-0.5 leading-relaxed">
-          Nothing here is a stake. Numbers, socials, and the Marketing Add-on are a walkthrough of how a
-          real pool dashboard reads.
+          {t("sample.body")}
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -37,15 +38,16 @@ export function SampleDashboardsBanner() {
           className="h-9 px-3 rounded-xl text-xs font-semibold text-hi border border-black/10
                      hover:bg-black/[0.04] grid place-items-center"
         >
-          All samples
+          {t("sample.all")}
         </Link>
-        <CreatePoolButton label="Create a real pool" showIcon={false} />
+        <CreatePoolButton label={t("sample.create")} showIcon={false} />
       </div>
     </div>
   );
 }
 
 export function SampleDashboardsCta({ compact = false }: { compact?: boolean }) {
+  const { t } = useI18n();
   if (compact) {
     return (
       <Link
@@ -53,7 +55,7 @@ export function SampleDashboardsCta({ compact = false }: { compact?: boolean }) 
         className="text-xs font-semibold text-gold-neon hover:underline"
         data-testid="sample-dashboards-link"
       >
-        Preview sample dashboards
+        {t("sample.link")}
       </Link>
     );
   }
@@ -64,7 +66,7 @@ export function SampleDashboardsCta({ compact = false }: { compact?: boolean }) 
                  border border-black/10 hover:bg-black/[0.04] items-center"
       data-testid="sample-dashboards-cta"
     >
-      Preview a pool dashboard
+      {t("sample.cta")}
     </Link>
   );
 }

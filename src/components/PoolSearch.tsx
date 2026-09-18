@@ -5,12 +5,14 @@ import { listPools, type PoolSummary } from "@/lib/factoryClient";
 import { readLocalPools } from "@/lib/localPools";
 import { isMockPoolAddress } from "@/lib/mockPools";
 import { networkByChainId } from "@/lib/evmNetworks";
+import { useI18n } from "@/components/LanguageProvider";
 
 /**
  * Search live + local pools by contract (pool or token) address.
  * A match is a link to that pool's dashboard.
  */
 export function PoolSearch() {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"idle" | "searching" | "done">("idle");
   const [hits, setHits] = useState<PoolSummary[]>([]);
@@ -20,17 +22,17 @@ export function PoolSearch() {
   const looksValid = isAddress(trimmed, { strict: false });
 
   const hint = useMemo(() => {
-    if (!trimmed) return "Search pools by contract address";
-    if (!looksValid) return "Enter a 0x pool or token address";
+    if (!trimmed) return t("search.emptyHint");
+    if (!looksValid) return t("search.invalidHint");
     return "";
-  }, [trimmed, looksValid]);
+  }, [trimmed, looksValid, t]);
 
   async function runSearch(e?: React.FormEvent) {
     e?.preventDefault();
     setError("");
     setHits([]);
     if (!looksValid) {
-      setError("That’s not a valid 0x address.");
+      setError(t("search.invalid"));
       setStatus("done");
       return;
     }
@@ -53,9 +55,9 @@ export function PoolSearch() {
         return true;
       });
       setHits(unique);
-      if (unique.length === 0) setError("No pool at that address on listed factories.");
+      if (unique.length === 0) setError(t("search.none"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Search failed.");
+      setError(err instanceof Error ? err.message : t("search.failed"));
     } finally {
       setStatus("done");
     }
@@ -64,7 +66,7 @@ export function PoolSearch() {
   return (
     <form onSubmit={runSearch} className="relative w-full max-w-md" data-testid="pool-search">
       <label className="sr-only" htmlFor="pool-search-input">
-        Search pools by contract address
+        {t("search.label")}
       </label>
       <div className="flex items-center gap-2">
         <input
@@ -77,7 +79,7 @@ export function PoolSearch() {
             setError("");
             setHits([]);
           }}
-          placeholder="Search by contract address (0x…)"
+          placeholder={t("search.placeholder")}
           className="input-term !h-10 !py-0 flex-1 text-xs"
           autoComplete="off"
           spellCheck={false}

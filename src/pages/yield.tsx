@@ -13,6 +13,7 @@ import {
   usePoolStats,
   PROGRAM_DAYS,
 } from "@/lib/economics";
+import { useI18n } from "@/components/LanguageProvider";
 
 /**
  * Yield page (/yield): visualizes the connected wallet's reward growth.
@@ -24,6 +25,7 @@ import {
  * model, so figures agree with the dashboard and calculator.
  */
 export default function YieldPage() {
+  const { t } = useI18n();
   const { connected } = useConnectedAccount();
   const stats = usePoolStats();
   const { data: pos, enabled: posEnabled, loading } = usePosition();
@@ -57,20 +59,19 @@ export default function YieldPage() {
             {/* Header */}
             <header className="animate-rise">
               <Link to="/dashboard" className="label-term hover:text-gold-neon transition-colors">
-                ← Back to dashboard
+                {t("common.back")}
               </Link>
               <div className="flex items-end justify-between flex-wrap gap-3 mt-3">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-hi">
-                    Reward Growth
+                    {t("yieldPage.title")}
                   </h1>
                   <p className="text-mid mt-2 leading-relaxed">
-                    How your rewards accumulate over the {PROGRAM_DAYS}-day program, based on your
-                    stake and tenure multiplier.
+                    {t("yieldPage.intro", { n: PROGRAM_DAYS })}
                   </p>
                 </div>
                 {connected && (
-                  <span className="label-term">{loading ? "Syncing…" : "Live"}</span>
+                  <span className="label-term">{loading ? t("yieldPage.syncing") : t("yieldPage.live")}</span>
                 )}
               </div>
             </header>
@@ -80,8 +81,7 @@ export default function YieldPage() {
             {!connected && (
               <section className="glass glass-gold p-5 animate-rise flex items-center justify-between flex-wrap gap-3">
                 <p className="text-sm text-mid leading-relaxed max-w-md">
-                  Showing an illustrative projection. Connect your wallet to see reward growth for
-                  your actual position.
+                  {t("yieldPage.illustrative")}
                 </p>
                 <WalletButton />
               </section>
@@ -90,27 +90,27 @@ export default function YieldPage() {
             {/* Reward metrics */}
             <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-rise">
               <Metric
-                label="Pending"
+                label={t("yieldPage.pending")}
                 value={formatCompact(toTokens(pending))}
-                sub="unclaimed"
+                sub={t("yieldPage.unclaimed")}
                 accent="pos"
               />
               <Metric
-                label="Claimed"
+                label={t("yieldPage.claimed")}
                 value={formatCompact(toTokens(claimed))}
-                sub="lifetime"
+                sub={t("yieldPage.lifetime")}
                 accent="gold"
               />
               <Metric
-                label="Earned total"
+                label={t("yieldPage.earned")}
                 value={formatCompact(toTokens(lifetime))}
-                sub="claimed + pending"
+                sub={t("yieldPage.claimedPending")}
                 accent="hi"
               />
               <Metric
-                label="Est. daily"
+                label={t("yieldPage.daily")}
                 value={formatCompact(toTokens(daily.dailyReward))}
-                sub="tokens/day"
+                sub={t("yieldPage.perDay")}
                 accent="pos"
               />
             </section>
@@ -124,54 +124,10 @@ export default function YieldPage() {
 
             {/* Chart description */}
             <section className="glass p-6 animate-rise">
-              <h2 className="label-term !text-[10px] mb-3">What this chart shows</h2>
+              <h2 className="label-term !text-[10px] mb-3">{t("yieldPage.chart")}</h2>
               <p className="text-sm text-mid leading-relaxed">
-                The curve plots your <span className="text-hi">cumulative rewards</span> — the
-                running total of reward tokens your position earns — measured in tokens on the
-                vertical axis against the day of the {PROGRAM_DAYS}-day program on the horizontal
-                axis. Each point is the sum of every prior day&rsquo;s yield, so the line only ever
-                rises; a steeper section means faster earning during that stretch.
+                {t("yieldPage.chartBody", { n: PROGRAM_DAYS })}
               </p>
-              <ul className="mt-4 space-y-2.5 text-sm text-mid leading-relaxed">
-                <li className="flex gap-2.5">
-                  <Dot />
-                  <span>
-                    <span className="text-hi">Where the numbers come from.</span> The shape is
-                    computed from your <span className="text-gold-neon">staked amount</span> and{" "}
-                    <span className="text-gold-neon">tenure multiplier</span> read from your
-                    on-chain position, run through the same reward model as the dashboard and
-                    calculator. Left of today it reflects earning to date; right of today it is a{" "}
-                    <span className="text-hi">projection</span> assuming the current emission rate
-                    and pool composition hold.
-                  </span>
-                </li>
-                <li className="flex gap-2.5">
-                  <Dot />
-                  <span>
-                    <span className="text-pos">The dashed vertical line</span> marks today, and the{" "}
-                    <span className="text-gold-neon">projected total</span> in the top-right is
-                    where the curve ends on the final day.
-                  </span>
-                </li>
-                <li className="flex gap-2.5">
-                  <Dot />
-                  <span>
-                    <span className="text-hi">The early climb</span> is steepest because the
-                    pool&rsquo;s emissions ramp from{" "}
-                    <span className="mono text-gold-neon">1.0x</span> to{" "}
-                    <span className="mono text-gold-neon">2.0x</span> over the first day, then
-                    hold — so the slope eases into a steadier rate afterward.
-                  </span>
-                </li>
-                <li className="flex gap-2.5">
-                  <Dot />
-                  <span>
-                    A larger stake or a higher tenure multiplier lifts the whole curve — your share
-                    of each day&rsquo;s emissions grows with both. Hover any day to read the
-                    cumulative total at that point.
-                  </span>
-                </li>
-              </ul>
             </section>
 
             <footer className="pt-1">
@@ -213,16 +169,6 @@ function Metric({
         <div className="label-term !text-[8px] !tracking-normal !normal-case mt-0.5">{sub}</div>
       )}
     </div>
-  );
-}
-
-/** Small gold bullet used in the chart description list. */
-function Dot() {
-  return (
-    <span
-      className="shrink-0 mt-1.5 inline-block w-1.5 h-1.5 rounded-full"
-      style={{ background: "linear-gradient(180deg, var(--neon-gold), var(--amber))" }}
-    />
   );
 }
 

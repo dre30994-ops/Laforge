@@ -12,8 +12,11 @@ import { ImmutableStakeCard } from "@/components/ImmutableStakeCard";
 import { OfficialLinks } from "@/components/OfficialLinks";
 import { ConnectWithX } from "@/components/ConnectWithX";
 import { WalletButton } from "@/components/WalletButton";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useI18n } from "@/components/LanguageProvider";
 
 export default function Home() {
+  const { t } = useI18n();
   return (
     <TerminalShell>
         <main className="flex-1 min-w-0 px-4 md:px-6 lg:px-8 py-6">
@@ -21,19 +24,22 @@ export default function Home() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <h1 className="text-xl font-semibold tracking-tight text-hi">
-                  Staking Terminal
+                  {t("dash.title")}
                 </h1>
                 <p className="label-term mt-1" data-testid="protocol-tvl-caption">
-                  Pools on Robinhood and Ethereum
+                  {t("dash.caption")}
                 </p>
               </div>
-              <div className="flex items-center gap-3 shrink-0 flex-wrap lg:pr-[7.5rem]">
-                <ConnectWithX />
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap lg:pr-[7.5rem]">
+                <div className="flex items-center gap-1.5">
+                  <ConnectWithX />
+                  <LanguageToggle />
+                </div>
                 <WalletButton />
                 <CreatePoolButton />
                 <div className="hidden md:flex items-center gap-2">
                   <span className="pulse-dot" />
-                  <span className="label-term">Mainnet feed · live</span>
+                  <span className="label-term">{t("dash.live")}</span>
                 </div>
               </div>
             </div>
@@ -66,7 +72,7 @@ export default function Home() {
 
             <footer className="pt-4 pb-2 text-center">
               <p className="label-term !tracking-normal !normal-case text-lo">
-                Tenure resets on unstake · rate can rise if the operator tops up
+                {t("dash.footer")}
               </p>
             </footer>
           </div>

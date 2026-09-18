@@ -6,6 +6,7 @@ import { resolvePrivyAppId, PrivyReadyContext } from "@/lib/privy";
 import { useChain } from "@/components/ChainProvider";
 import { explorerAddressUrl } from "@/lib/evmNetworks";
 import { shortAddress } from "@/lib/brand";
+import { useI18n } from "@/components/LanguageProvider";
 
 function XMark({ className }: { className?: string }) {
   return (
@@ -67,16 +68,17 @@ function ConnectWithXLive() {
   const [copied, setCopied] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const { t, chainLabel, chainShort } = useI18n();
   const handle = user?.twitter?.username;
   const privyWallet = wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
   const address = privyWallet?.address || wagmiAddress || "";
   const label = busy
-    ? "Connecting…"
+    ? t("connect.connecting")
     : authenticated
       ? handle
         ? `@${handle}`
-        : "X connected"
-      : "Connect with X";
+        : t("connect.connected")
+      : t("connect.withX");
 
   useEffect(() => {
     if (!open) return;
@@ -119,14 +121,14 @@ function ConnectWithXLive() {
               return;
             }
             if (!ready) {
-              setError("Privy is still loading. Try again in a second.");
+              setError(t("connect.privyLoading"));
               return;
             }
             setBusy(true);
             try {
               await login();
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Could not open X login.");
+              setError(e instanceof Error ? e.message : t("connect.openFail"));
             } finally {
               setBusy(false);
             }
@@ -144,14 +146,14 @@ function ConnectWithXLive() {
             fontFamily: "var(--font-mono, monospace)",
           }}
           role="dialog"
-          aria-label="X wallet"
+          aria-label={t("connect.signedIn")}
         >
-          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-mid">Signed in with X</p>
-          <p className="mt-1 text-sm font-semibold text-hi">{handle ? `@${handle}` : "X connected"}</p>
+          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-mid">{t("connect.signedIn")}</p>
+          <p className="mt-1 text-sm font-semibold text-hi">{handle ? `@${handle}` : t("connect.connected")}</p>
 
           <div className="mt-3 rounded-xl border border-black/8 bg-black/[0.03] px-3 py-2.5">
             <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-mid">
-              Wallet · {network.label}
+              {t("connect.wallet", { chain: chainLabel(network.key, network.label) })}
             </p>
             {address ? (
               <div className="mt-1.5 flex items-center gap-1.5">
@@ -159,7 +161,7 @@ function ConnectWithXLive() {
                 <button
                   type="button"
                   className="inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05]"
-                  aria-label="Copy wallet address"
+                  aria-label={t("connect.copy")}
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(address);
@@ -178,18 +180,17 @@ function ConnectWithXLive() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05]"
-                    aria-label="View on explorer"
+                    aria-label={t("connect.explorer")}
                   >
                     <ExternalLink size={13} />
                   </a>
                 ) : null}
               </div>
             ) : (
-              <p className="mt-1.5 text-xs text-mid">Creating your wallet…</p>
+              <p className="mt-1.5 text-xs text-mid">{t("connect.creating")}</p>
             )}
             <p className="mt-2 text-[11px] text-mid leading-snug">
-              Create Stake uses this wallet on {network.short}. Switch networks in the chain menu to
-              deploy on another chain.
+              {t("connect.usesWallet", { chain: chainShort(network.key, network.short) })}
             </p>
           </div>
 
@@ -199,7 +200,7 @@ function ConnectWithXLive() {
               className="mt-2 text-[11px] text-mid hover:text-hi underline-offset-2 hover:underline"
               onClick={() => void selectNetwork("robinhood")}
             >
-              Switch to Robinhood Chain
+              {t("connect.switchRobinhood")}
             </button>
           ) : null}
 
@@ -212,7 +213,7 @@ function ConnectWithXLive() {
             }}
           >
             <LogOut size={12} />
-            Disconnect X
+            {t("connect.disconnect")}
           </button>
         </div>
       ) : null}
@@ -223,6 +224,7 @@ function ConnectWithXLive() {
 export function ConnectWithX() {
   const privyReady = useContext(PrivyReadyContext);
   const [error, setError] = useState("");
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!privyReady) void resolvePrivyAppId();
@@ -231,15 +233,13 @@ export function ConnectWithX() {
   if (!privyReady) {
     return (
       <ConnectWithXButton
-        label="Connect with X"
+        label={t("connect.withX")}
         error={error}
         onClick={() => {
           void (async () => {
             const id = await resolvePrivyAppId();
             if (!id) {
-              setError(
-                "Privy App ID is not on this deploy. In Vercel → Settings → Environment Variables add VITE_PRIVY_APP_ID (the App ID from dashboard.privy.io), apply to Production, then Redeploy.",
-              );
+              setError(t("connect.missingId"));
             }
           })();
         }}

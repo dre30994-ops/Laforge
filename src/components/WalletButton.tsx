@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useChain } from "@/components/ChainProvider";
 import { useSolanaWallet } from "@/hooks/useSolanaWallet";
+import { useI18n } from "@/components/LanguageProvider";
 
 type WalletButtonProps = {
   className?: string;
@@ -13,6 +14,7 @@ type WalletButtonProps = {
  * wallet is attached (click still disconnects).
  */
 export function WalletButton({ className = "" }: WalletButtonProps) {
+  const { t } = useI18n();
   const { chain, family } = useChain();
   const sol = useSolanaWallet();
   const { isConnected: evmConnected } = useAccount();
@@ -51,9 +53,9 @@ export function WalletButton({ className = "" }: WalletButtonProps) {
         fontFamily: "var(--font-mono, monospace)",
         color: "#fff",
       }}
-      aria-label={connected ? "Disconnect wallet" : "Connect wallet"}
+      aria-label={connected ? t("wallet.disconnectAria") : t("wallet.connectAria")}
     >
-      {connected ? "Connected" : "Connect Wallet"}
+      {connected ? t("wallet.connected") : t("wallet.connect")}
     </button>
   );
 }

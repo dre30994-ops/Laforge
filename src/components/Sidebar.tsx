@@ -4,6 +4,8 @@ import { WalletButton } from "@/components/WalletButton";
 import { ChainSwitch } from "@/components/ChainSwitch";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
 import { useChain } from "@/components/ChainProvider";
+import { useI18n } from "@/components/LanguageProvider";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 type IconProps = { className?: string };
 
@@ -90,21 +92,34 @@ const Icons = {
 };
 
 const NAV = [
-  { key: "dashboard", label: "Dashboard", icon: Icons.dashboard, href: "/dashboard", match: "/dashboard" },
-  { key: "pools", label: "Pools", icon: Icons.pools, href: "/pools", match: "/pools" },
-  { key: "stake", label: "Stake", icon: Icons.stake, href: "/stake", match: "/stake" },
-  { key: "roadmap", label: "Roadmap", icon: Icons.roadmap, href: "/roadmap", match: "/roadmap", className: "text-[#22c55e]" },
-  { key: "yield", label: "Yield", icon: Icons.yield, href: "/yield", match: "/yield" },
-  { key: "calculator", label: "Calculator", icon: Icons.calculator, href: "/calculator", match: "/calculator" },
-  { key: "history", label: "History", icon: Icons.history, href: "/history", match: "/history" },
-  { key: "docs", label: "Docs", icon: Icons.docs, href: "/docs", match: "/docs" },
-  { key: "faqs", label: "FAQs", icon: Icons.faqs, href: "/faqs", match: "/faqs" },
+  { key: "dashboard", href: "/dashboard", match: "/dashboard" },
+  { key: "pools", href: "/pools", match: "/pools" },
+  { key: "stake", href: "/stake", match: "/stake" },
+  { key: "roadmap", href: "/roadmap", match: "/roadmap", className: "text-[#22c55e]" },
+  { key: "yield", href: "/yield", match: "/yield" },
+  { key: "calculator", href: "/calculator", match: "/calculator" },
+  { key: "history", href: "/history", match: "/history" },
+  { key: "docs", href: "/docs", match: "/docs" },
+  { key: "faqs", href: "/faqs", match: "/faqs" },
 ] as const;
+
+const NAV_ICONS = {
+  dashboard: Icons.dashboard,
+  pools: Icons.pools,
+  stake: Icons.stake,
+  roadmap: Icons.roadmap,
+  yield: Icons.yield,
+  calculator: Icons.calculator,
+  history: Icons.history,
+  docs: Icons.docs,
+  faqs: Icons.faqs,
+} as const;
 
 export function Sidebar() {
   const pathname = useRouter().state.location.pathname;
   const { connected } = useSolanaWallet();
   const { family, network } = useChain();
+  const { t, chainShort } = useI18n();
 
   const isActive = (match: string) => {
     if (match === "/pools") return pathname === "/pools" || pathname.startsWith("/pool/");
@@ -113,7 +128,11 @@ export function Sidebar() {
   };
 
   const netLabel =
-    family === "solana" ? (connected ? "Solana · Live" : "Solana · Devnet") : network.short;
+    family === "solana"
+      ? connected
+        ? `${t("chain.solana")} · ${t("status.live")}`
+        : `${t("chain.solana")} · Devnet`
+      : chainShort(network.key, network.short);
 
   return (
     <aside className="glass !rounded-2xl flex flex-col w-full h-full min-h-0 p-4 relative z-10 overflow-y-auto overflow-x-hidden">
@@ -122,7 +141,7 @@ export function Sidebar() {
         to="/"
         className="flex items-center gap-3 px-1 pb-5 mb-4 border-b border-black/[0.06]
                    rounded-lg hover:opacity-90 transition-opacity"
-        aria-label="Laforge — back to landing page"
+        aria-label={t("nav.backLanding")}
       >
         <img
           src="/icon2_nobg.png"
@@ -133,24 +152,24 @@ export function Sidebar() {
         />
         <div>
           <div className="text-sm font-semibold tracking-tight text-hi">Laforge</div>
-          <div className="label-term !text-[9px]">Staking Terminal</div>
+          <div className="label-term !text-[9px]">{t("nav.stakingTerminal")}</div>
         </div>
       </Link>
 
       {/* Nav */}
       <nav className="flex flex-col gap-1 flex-1 min-h-0">
         {NAV.map((item) => {
-          const Icon = item.icon;
+          const Icon = NAV_ICONS[item.key];
           const active = isActive(item.match);
           return (
             <Link
               key={item.key}
               to={item.href}
               aria-current={active ? "page" : undefined}
-              className={`nav-item ${active ? "active" : ""} ${"className" in item ? item.className : ""}`}
+              className={`nav-item ${active ? "active" : ""} ${("className" in item ? item.className : "") ?? ""}`}
             >
               <Icon className="w-[18px] h-[18px] shrink-0" />
-              <span>{item.label}</span>
+              <span>{t(`nav.${item.key}`)}</span>
             </Link>
           );
         })}
@@ -158,7 +177,7 @@ export function Sidebar() {
         {/* Create Stake — opens the same "Create Pool" modal as the top-right
             Create button, sharing identical behavior via CreatePoolButton. */}
         <CreatePoolButton
-          label="Create Stake"
+          label={t("nav.createStake")}
           showIcon={false}
           className="mt-3 w-full flex items-center justify-center h-10 rounded-xl text-xs font-semibold
                      text-white border-none transition-opacity hover:opacity-90"
@@ -175,7 +194,7 @@ export function Sidebar() {
           <span className="w-[18px] h-[18px] shrink-0 grid place-items-center text-[11px] font-bold">
             ?
           </span>
-          <span>Samples</span>
+          <span>{t("nav.samples")}</span>
         </Link>
       </nav>
       {/* Status + wallet */}
@@ -186,6 +205,8 @@ export function Sidebar() {
         </div>
 
         <ChainSwitch />
+
+        <LanguageToggle />
 
         <WalletButton className="!w-full w-full" />
       </div>

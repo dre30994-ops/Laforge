@@ -1,5 +1,6 @@
 import { formatUnits } from "viem";
 import type { PoolSummary } from "@/lib/factoryClient";
+import { useI18n } from "@/components/LanguageProvider";
 
 function formatCompact(n: number): string {
   if (!Number.isFinite(n)) return "0";
@@ -21,6 +22,7 @@ function fmt(n: number | null): string {
 }
 
 export function PoolVaultStats({ pool }: { pool: PoolSummary }) {
+  const { t } = useI18n();
   const dec = pool.decimals || 18;
   const locked = asTokens(pool.stakeVaultBalance, dec);
   const left = asTokens(pool.rewardVaultBalance, dec);
@@ -28,19 +30,19 @@ export function PoolVaultStats({ pool }: { pool: PoolSummary }) {
 
   const rows = [
     {
-      k: "Total tokens locked",
+      k: t("vault.locked"),
       v: fmt(locked),
-      sub: pool.symbol ? `$${pool.symbol}` : "staked",
+      sub: pool.symbol ? `$${pool.symbol}` : t("vault.staked"),
     },
     {
-      k: "Total tokens left",
+      k: t("vault.left"),
       v: fmt(left),
-      sub: "rewards remaining",
+      sub: t("vault.remaining"),
     },
     {
-      k: "Tokens emitted so far",
+      k: t("vault.emitted"),
       v: fmt(emitted),
-      sub: "paid out",
+      sub: t("vault.paid"),
     },
   ];
 

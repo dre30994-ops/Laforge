@@ -12,6 +12,7 @@ import { explorerTxUrl, type EvmNetwork } from "@/lib/evmNetworks";
 import type { PoolSummary } from "@/lib/factoryClient";
 import { useLiveClaimable } from "@/hooks/useLiveClaimable";
 import { useConnectedAccount } from "@/hooks/useConnectedAccount";
+import { useI18n } from "@/components/LanguageProvider";
 
 type Tab = "stake" | "unstake" | "claim";
 
@@ -24,6 +25,7 @@ export function PoolActionStrip({
   network: EvmNetwork;
   onUpdated?: () => void;
 }) {
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("stake");
   const [amount, setAmount] = useState("");
   const { address } = useConnectedAccount();
@@ -52,24 +54,28 @@ export function PoolActionStrip({
   });
 
   const metrics = [
-    { label: "Staked", value: formatCompact(mock ? yourStake : toTokens(stats.yourStake)), accent: "hi" },
-    { label: "Tenure mult", value: `${stats.yourMultiplier.toFixed(2)}x`, accent: "gold" },
+    { key: "staked", value: formatCompact(mock ? yourStake : toTokens(stats.yourStake)), accent: "hi" },
+    { key: "tenure", value: `${stats.yourMultiplier.toFixed(2)}x`, accent: "gold" },
     {
-      label: "Pending",
+      key: "pending",
       value: mock ? formatCompact(yourPending) : liveClaimable || formatCompact(toTokens(stats.yourPending)),
       accent: "pos",
     },
-    { label: "Est. daily", value: formatCompact(toTokens(daily.dailyReward)), accent: "gold" },
-    { label: "Pool avg mult", value: `${stats.poolAvgMultiplier.toFixed(2)}x`, accent: "mid" },
-    { label: "Pool left", value: formatCompact(toTokens(stats.remaining)), accent: "mid" },
+    { key: "daily", value: formatCompact(toTokens(daily.dailyReward)), accent: "gold" },
+    { key: "avg", value: `${stats.poolAvgMultiplier.toFixed(2)}x`, accent: "mid" },
+    { key: "left", value: formatCompact(toTokens(stats.remaining)), accent: "mid" },
   ];
 
   const colorFor = (a: string) =>
     a === "pos" ? "text-pos" : a === "gold" ? "text-gold-neon" : a === "mid" ? "text-mid" : "text-hi";
 
   const busy = actions.status === "pending";
-  const actionLabel = tab === "stake" ? "Stake" : tab === "unstake" ? "Unstake" : "Claim rewards";
-  const primaryLabel = busy ? "Confirming…" : mock && !address ? `Demo ${actionLabel}` : actionLabel;
+  const actionLabel = tab === "stake" ? t("position.stake") : tab === "unstake" ? t("position.unstake") : t("position.claimRewards");
+  const primaryLabel = busy
+    ? t("position.confirming")
+    : mock && !address
+    ? t("position.demoAction", { action: actionLabel })
+    : actionLabel;
 
   async function handleAction() {
     if (tab === "claim") {
@@ -89,13 +95,13 @@ export function PoolActionStrip({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch animate-rise" data-testid="pool-action-strip">
       <div className="lg:col-span-2 glass p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-hi tracking-tight">Your Position</h2>
-          <span className="label-term">{mock ? "Demo" : "Live"}</span>
+          <h2 className="text-sm font-semibold text-hi tracking-tight">{t("position.title")}</h2>
+          <span className="label-term">{mock ? t("position.demo") : t("position.live")}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {metrics.map((m) => (
-            <div key={m.label} className="rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
-              <div className="label-term !text-[9px]">{m.label}</div>
+            <div key={m.key} className="rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
+              <div className="label-term !text-[9px]">{t(`position.${m.key}`)}</div>
               <div className={`mono text-lg font-bold ${colorFor(m.accent)} leading-tight mt-1`}>
                 {m.value}
               </div>
@@ -106,18 +112,18 @@ export function PoolActionStrip({
 
       <div className="glass glass-gold p-5 flex flex-col">
         <div className="grid grid-cols-3 gap-1.5 mb-4">
-          {(["stake", "unstake", "claim"] as Tab[]).map((t) => (
+          {(["stake", "unstake", "claim"] as Tab[]).map((tabKey) => (
             <button
-              key={t}
+              key={tabKey}
               type="button"
               onClick={() => {
-                setTab(t);
+                setTab(tabKey);
                 setAmount("");
               }}
               disabled={busy}
-              className={`pill ${tab === t ? "active" : ""}`}
+              className={`pill ${tab === tabKey ? "active" : ""}`}
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t(`position.${tabKey}`)}
             </button>
           ))}
         </div>
@@ -125,14 +131,14 @@ export function PoolActionStrip({
         {tab !== "claim" ? (
           <label className="block mb-4">
             <div className="flex items-center justify-between">
-              <span className="label-term">Amount</span>
+              <span className="label-term">{t("position.amount")}</span>
               {mock && tab === "unstake" && (
                 <button
                   type="button"
                   onClick={() => setAmount(yourStake.toString())}
                   className="label-term !text-[9px] hover:text-gold-neon transition-colors"
                 >
-                  Staked: {formatCompact(yourStake)} · MAX
+                  {t("position.max", { n: formatCompact(yourStake) })}
                 </button>
               )}
             </div>
@@ -148,7 +154,7 @@ export function PoolActionStrip({
           </label>
         ) : (
           <div className="mb-4 rounded-xl border border-black/[0.06] bg-black/[0.02] p-4 text-center">
-            <div className="label-term">Claimable</div>
+            <div className="label-term">{t("position.claimable")}</div>
             <div className="mono text-2xl font-bold text-pos mt-1">
               {mock ? formatCompact(yourPending) : liveClaimable || "0.00"}
             </div>
@@ -157,7 +163,7 @@ export function PoolActionStrip({
 
         {tab === "unstake" && (
           <p className="label-term !text-[9px] !tracking-normal !normal-case text-amber-neon mb-3">
-            Unstaking resets tenure to 1.00x. Tax is sent to this pool’s treasury.
+            {t("position.unstakeWarn")}
           </p>
         )}
 
@@ -167,7 +173,7 @@ export function PoolActionStrip({
 
         {mock && (
           <p className="label-term !text-[9px] !tracking-normal !normal-case mt-2 leading-snug">
-            Demo pool — stake, unstake, and claim update this vault locally so you can preview the dashboard.
+            {t("position.demoHint")}
           </p>
         )}
 

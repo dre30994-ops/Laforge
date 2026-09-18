@@ -54,6 +54,14 @@ h1, h2, h3, h4 {
   font-family: var(--font-sans, system-ui, sans-serif);
 }
 
+html[lang="zh-CN"] body,
+html[lang="zh-CN"] h1,
+html[lang="zh-CN"] h2,
+html[lang="zh-CN"] h3,
+html[lang="zh-CN"] h4 {
+  font-family: "Noto Sans SC", var(--font-sans, system-ui, sans-serif);
+}
+
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #f1eee6; }
 ::-webkit-scrollbar-thumb { background: rgba(200, 151, 26, 0.45); border-radius: 9999px; }

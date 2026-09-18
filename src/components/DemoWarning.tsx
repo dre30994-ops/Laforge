@@ -1,4 +1,7 @@
+import { useI18n } from "@/components/LanguageProvider";
+
 export function DemoWarning() {
+  const { t } = useI18n();
   return (
     <div
       className="rounded-xl px-4 py-3 text-sm leading-relaxed"
@@ -8,12 +11,8 @@ export function DemoWarning() {
       }}
       role="note"
     >
-      <span className="font-semibold text-hi">This page is a demo.</span>{" "}
-      <span className="text-mid">
-        Figures here use sample pool math. If you created an Ecosystem or Marketing pool, open
-        that pool&rsquo;s dashboard — its calculator is tuned to that pool&rsquo;s duration, taxes, and
-        funding, and will give a more accurate value.
-      </span>
+      <span className="font-semibold text-hi">{t("demo.title")}</span>{" "}
+      <span className="text-mid">{t("demo.body")}</span>
     </div>
   );
 }

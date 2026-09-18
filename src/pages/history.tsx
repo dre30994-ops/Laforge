@@ -6,14 +6,15 @@ import { useUserLedger } from "@/hooks/useUserLedger";
 import { sanitizeImageSrc } from "@/lib/sanitize";
 import { networkByChainId } from "@/lib/evmNetworks";
 import type { ActivityItem, ActivityKind } from "@/lib/userLedger";
+import { useI18n } from "@/components/LanguageProvider";
 
 const ACTION_META: Record<
   ActivityKind,
-  { label: string; color: string; sign: "+" | "-" }
+  { color: string; sign: "+" | "-" }
 > = {
-  stake: { label: "Stake", color: "var(--pos)", sign: "+" },
-  unstake: { label: "Unstake", color: "var(--amber)", sign: "-" },
-  claim: { label: "Claim", color: "var(--neon-gold)", sign: "+" },
+  stake: { color: "var(--pos)", sign: "+" },
+  unstake: { color: "var(--amber)", sign: "-" },
+  claim: { color: "var(--neon-gold)", sign: "+" },
 };
 
 function fmtDateTime(ms: number): string {
@@ -28,6 +29,7 @@ function fmtDateTime(ms: number): string {
 }
 
 export default function HistoryPage() {
+  const { t } = useI18n();
   const { address, connected } = useConnectedAccount();
   const { activity } = useUserLedger(address);
 
@@ -37,21 +39,20 @@ export default function HistoryPage() {
           <div className="max-w-[1000px] mx-auto space-y-6">
             <header className="animate-rise">
               <Link to="/dashboard" className="label-term hover:text-gold-neon transition-colors">
-                ← Back to dashboard
+                {t("common.back")}
               </Link>
               <div className="flex items-end justify-between flex-wrap gap-3 mt-3">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-hi">
-                    Activity History
+                    {t("historyPage.title")}
                   </h1>
                   <p className="text-mid mt-2 leading-relaxed">
-                    Every stake, unstake, and claim for the connected wallet — token, name, and
-                    the time it happened.
+                    {t("historyPage.intro")}
                   </p>
                 </div>
                 {connected && address && (
                   <div className="glass !rounded-xl px-4 py-2.5">
-                    <div className="label-term !text-[9px]">Account</div>
+                    <div className="label-term !text-[9px]">{t("historyPage.account")}</div>
                     <div className="mono text-sm text-gold-neon">
                       {address.slice(0, 6)}…{address.slice(-4)}
                     </div>
@@ -74,12 +75,12 @@ export default function HistoryPage() {
 }
 
 function ConnectPrompt() {
+  const { t } = useI18n();
   return (
     <section className="glass glass-gold p-10 text-center animate-rise">
-      <h2 className="text-lg font-semibold text-hi tracking-tight">Connect your wallet</h2>
+      <h2 className="text-lg font-semibold text-hi tracking-tight">{t("historyPage.connect")}</h2>
       <p className="text-mid text-sm mt-1.5 max-w-sm mx-auto leading-relaxed">
-        History is private to the connected account. Connect to see your stakes, unstakes, and
-        claims.
+        {t("historyPage.connectBody")}
       </p>
       <div className="mt-5 flex justify-center">
         <WalletButton />
@@ -89,32 +90,33 @@ function ConnectPrompt() {
 }
 
 function EmptyState() {
+  const { t } = useI18n();
   return (
     <section className="glass p-10 text-center animate-rise">
-      <h2 className="text-lg font-semibold text-hi tracking-tight">No activity yet</h2>
+      <h2 className="text-lg font-semibold text-hi tracking-tight">{t("historyPage.empty")}</h2>
       <p className="text-mid text-sm mt-1.5">
-        Stake, unstake, or claim from a pool dashboard and the event will land here with the
-        token image, name, and timestamp.
+        {t("historyPage.emptyBody")}
       </p>
       <Link to="/pools" className="inline-block mt-5">
-        <span className="btn-neon !inline-block !w-auto !px-6">Browse pools</span>
+        <span className="btn-neon !inline-block !w-auto !px-6">{t("historyPage.browse")}</span>
       </Link>
     </section>
   );
 }
 
 function ActivityLog({ events }: { events: ActivityItem[] }) {
+  const { t } = useI18n();
   return (
     <section className="glass p-4 sm:p-5 animate-rise" data-testid="history-list">
       <div className="flex items-center justify-between mb-3 px-1">
-        <h2 className="text-sm font-semibold text-hi tracking-tight">Timeline</h2>
-        <span className="label-term">{events.length} events</span>
+        <h2 className="text-sm font-semibold text-hi tracking-tight">{t("historyPage.timeline")}</h2>
+        <span className="label-term">{t("historyPage.events", { n: events.length })}</span>
       </div>
 
       <ul className="divide-y divide-black/[0.06]">
         {events.map((e) => {
           const meta = ACTION_META[e.kind];
-          const title = e.name?.trim() || e.symbol || "Token";
+          const title = e.name?.trim() || e.symbol || t("historyPage.token");
           const net = networkByChainId(e.chainId);
           const img = sanitizeImageSrc(e.image);
           return (
@@ -138,7 +140,7 @@ function ActivityLog({ events }: { events: ActivityItem[] }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-hi truncate">{title}</span>
                   <span className="text-[11px] font-semibold" style={{ color: meta.color }}>
-                    {meta.label}
+                    {t(`historyPage.${e.kind}`)}
                   </span>
                 </div>
                 <div className="label-term !text-[9px] !tracking-normal !normal-case truncate mt-0.5">

@@ -1,5 +1,6 @@
 import { Volume2, VolumeX } from "lucide-react";
 import { useMusic } from "@/components/MusicProvider";
+import { useI18n } from "@/components/LanguageProvider";
 
 /**
  * Persistent mute/unmute chip. Compact and left-aligned so it never covers
@@ -7,18 +8,19 @@ import { useMusic } from "@/components/MusicProvider";
  */
 export function MusicToggle() {
   const { muted, toggleMute } = useMusic();
+  const { t } = useI18n();
 
   return (
     <div
       className="music-modal"
       role="group"
-      aria-label="Background music"
+      aria-label={t("music.group")}
       data-testid="music-modal"
     >
       <button
         type="button"
         onClick={toggleMute}
-        aria-label={muted ? "Unmute music" : "Mute music"}
+        aria-label={muted ? t("music.unmuteAria") : t("music.muteAria")}
         className="music-modal-btn"
       >
         {muted ? (
@@ -26,7 +28,7 @@ export function MusicToggle() {
         ) : (
           <Volume2 size={15} strokeWidth={2.2} aria-hidden />
         )}
-        <span className="hidden sm:inline">{muted ? "Unmute" : "Mute"}</span>
+        <span className="hidden sm:inline">{muted ? t("music.unmute") : t("music.mute")}</span>
       </button>
     </div>
   );

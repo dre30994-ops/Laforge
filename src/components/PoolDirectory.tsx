@@ -13,6 +13,7 @@ import { EVM_NETWORKS, explorerAddressUrl, isVisibleNetwork, type EvmNetworkKey 
 import { ChainGlyph } from "@/components/ChainSwitch";
 import { sanitizeHttpUrl, sanitizeImageSrc, sanitizeSocials } from "@/lib/sanitize";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
+import { useI18n } from "@/components/LanguageProvider";
 
 export type CardData = PoolSummary & { meta: PoolMeta | null; trending: boolean };
 
@@ -41,6 +42,7 @@ export function PoolDirectory({
   limit?: number | null;
   showAllLink?: boolean;
 }) {
+  const { t } = useI18n();
   const [pools, setPools] = useState<CardData[] | null>(null);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export function PoolDirectory({
       setError("");
       setPools(withMeta(summaries.filter((p) => !p.demo), metaMap));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Could not load pools.");
+      setError(e instanceof Error ? e.message : t("directory.loadFail"));
       setPools([]);
     } finally {
       setLoading(false);
@@ -94,9 +96,9 @@ export function PoolDirectory({
     <section className="space-y-3" data-testid="pool-directory">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-hi">Pools</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-hi">{t("directory.title")}</h2>
           <p className="label-term mt-0.5">
-            Live on Robinhood and Ethereum
+            {t("directory.liveOn")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -106,7 +108,7 @@ export function PoolDirectory({
               className="h-9 px-4 rounded-xl text-xs font-semibold text-hi
                          border border-black/10 hover:bg-black/[0.04] grid place-items-center"
             >
-              {overflow > 0 ? `View all ${pools?.length} →` : "All pools →"}
+              {overflow > 0 ? t("directory.viewAll", { n: pools?.length ?? 0 }) : t("directory.allPools")}
             </Link>
           )}
           <button
@@ -116,7 +118,7 @@ export function PoolDirectory({
             className="h-9 px-4 rounded-xl text-xs font-semibold text-lo hover:text-hi
                        border border-black/10 disabled:opacity-50 transition-colors"
           >
-            {loading ? "Refreshing…" : "Refresh"}
+            {loading ? t("directory.refreshing") : t("directory.refresh")}
           </button>
         </div>
       </div>
@@ -145,7 +147,7 @@ export function PoolDirectory({
             className="text-xs font-semibold text-gold-neon hover:underline"
             data-testid="sample-dashboards-link"
           >
-            Preview sample dashboards
+            {t("directory.samples")}
           </Link>
         </p>
       )}
@@ -154,11 +156,12 @@ export function PoolDirectory({
 }
 
 export function PoolCard({ data }: { data: CardData }) {
+  const { t } = useI18n();
   const status = poolStatus(data);
   const network = EVM_NETWORKS[data.chainKey] ?? EVM_NETWORKS.robinhood;
   const title =
     data.meta?.nickname?.trim() ||
-    (data.symbol ? `${data.symbol} Pool` : "Staking Pool");
+    (data.symbol ? t("pool.named", { symbol: data.symbol }) : t("pool.stakingPool"));
   const staked = Number(formatUnits(data.stakeVaultBalance, data.decimals || 18));
   const explorer = explorerAddressUrl(network, data.pool);
 
@@ -166,7 +169,7 @@ export function PoolCard({ data }: { data: CardData }) {
   const banner = sanitizeImageSrc(meta?.banner);
   const image = sanitizeImageSrc(meta?.image);
   const shownTier = displayTier(data, meta);
-  const tierLabel = tierName(shownTier);
+  const tierLabel = tierName(shownTier, t);
   const verified = !!meta?.marketing?.verifiedBadge || data.tierOnChain === 2;
   const trending = data.trending;
 
@@ -205,9 +208,9 @@ export function PoolCard({ data }: { data: CardData }) {
       {isVisibleNetwork(data.chainKey) && <ChainBadge chainKey={data.chainKey} />}
 
       <dl className="grid grid-cols-3 gap-3">
-        <Stat k="Total staked" v={formatCompact(staked)} />
-        <Stat k="Duration" v={`${data.durationDays}d`} />
-        <Stat k="Stake tax" v={`${(data.stakeTaxBps / 100).toFixed(2)}%`} />
+        <Stat k={t("directory.totalStaked")} v={formatCompact(staked)} />
+        <Stat k={t("directory.duration")} v={t("common.daysShort", { n: data.durationDays })} />
+        <Stat k={t("directory.stakeTax")} v={`${(data.stakeTaxBps / 100).toFixed(2)}%`} />
       </dl>
 
       <SocialLinks socials={sanitizeSocials(meta?.socials)} tier={shownTier} />
@@ -217,7 +220,7 @@ export function PoolCard({ data }: { data: CardData }) {
           {shorten(data.pool)}
         </span>
         {data.demo ? (
-          <span className="text-[10px] font-semibold text-lo">Sample</span>
+          <span className="text-[10px] font-semibold text-lo">{t("directory.sample")}</span>
         ) : (
           <span
             className="text-xs text-gold-neon shrink-0"
@@ -227,7 +230,7 @@ export function PoolCard({ data }: { data: CardData }) {
               window.open(explorer, "_blank", "noopener,noreferrer");
             }}
           >
-            Explorer ↗
+            {t("directory.explorer")}
           </span>
         )}
       </div>
@@ -280,14 +283,15 @@ function SocialLinks({
   socials?: PoolMeta["socials"];
   tier?: number;
 }) {
+  const { t } = useI18n();
   const branded = tier === 1 || tier === 2;
   if (!branded || !socials) return null;
 
   const items = [
-    { href: sanitizeHttpUrl(socials.website), label: "Website", kind: "website" },
+    { href: sanitizeHttpUrl(socials.website), label: t("common.website"), kind: "website" },
     { href: sanitizeHttpUrl(socials.twitter), label: "X", kind: "twitter" },
-    { href: sanitizeHttpUrl(socials.telegram), label: "Telegram", kind: "telegram" },
-    { href: sanitizeHttpUrl(socials.discord), label: "Discord", kind: "discord" },
+    { href: sanitizeHttpUrl(socials.telegram), label: t("common.telegram"), kind: "telegram" },
+    { href: sanitizeHttpUrl(socials.discord), label: t("common.discord"), kind: "discord" },
   ].filter((i) => typeof i.href === "string" && i.href.length > 0);
 
   if (items.length === 0) return null;
@@ -368,10 +372,11 @@ function SocialIcon({ kind }: { kind: string }) {
 }
 
 function StatusPill({ status }: { status: "live" | "paused" | "pending" }) {
+  const { t } = useI18n();
   const map = {
-    live: { label: "Live", cls: "bg-green-500/15 text-green-300" },
-    paused: { label: "Paused", cls: "bg-amber-500/15 text-amber-300" },
-    pending: { label: "Pending", cls: "bg-black/[0.06] text-lo" },
+    live: { label: t("status.live"), cls: "bg-green-500/15 text-green-300" },
+    paused: { label: t("status.paused"), cls: "bg-amber-500/15 text-amber-300" },
+    pending: { label: t("status.pending"), cls: "bg-black/[0.06] text-lo" },
   } as const;
   const { label, cls } = map[status];
   return (
@@ -381,44 +386,47 @@ function StatusPill({ status }: { status: "live" | "paused" | "pending" }) {
   );
 }
 
-function tierName(tier?: number): string {
-  if (tier === 0) return "Bronze";
-  if (tier === 1) return "Ecosystem";
-  if (tier === 2) return "Marketing";
+function tierName(tier: number | undefined, t: (path: string) => string): string {
+  if (tier === 0) return t("status.bronze");
+  if (tier === 1) return t("status.ecosystem");
+  if (tier === 2) return t("status.marketing");
   return "";
 }
 
 function VerifiedBadge() {
+  const { t } = useI18n();
   return (
     <span
       className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
       style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)" }}
-      title="Verified safe"
+      title={t("status.verified")}
     >
-      Verified
+      {t("status.verified")}
     </span>
   );
 }
 
 function TrendingPill() {
+  const { t } = useI18n();
   return (
     <span
       className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
       style={{ background: "rgba(255,157,46,0.14)", color: "var(--amber-neon, #ff9d2e)", border: "1px solid rgba(255,157,46,0.3)" }}
-      title="Trending"
+      title={t("status.trending")}
     >
-      Trending
+      {t("status.trending")}
     </span>
   );
 }
 
 function DemoPill() {
+  const { t } = useI18n();
   return (
     <span
       className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border border-black/10 text-lo bg-black/[0.03]"
-      title="Demo pool for previewing dashboards"
+      title={t("status.demo")}
     >
-      Demo
+      {t("status.demo")}
     </span>
   );
 }
@@ -452,13 +460,13 @@ function SkeletonCard() {
 }
 
 function EmptyLiveState() {
+  const { t } = useI18n();
   return (
     <div className="glass !rounded-2xl p-8 text-center space-y-4" data-testid="empty-live-pools">
       <div>
-        <h3 className="text-base font-semibold text-hi">No live pools yet</h3>
+        <h3 className="text-base font-semibold text-hi">{t("directory.emptyTitle")}</h3>
         <p className="text-sm text-mid mt-2 leading-relaxed max-w-md mx-auto">
-          Be the first to launch on Robinhood or Ethereum. Until then you can walk through
-          sample dashboards — they are labeled and not a stake.
+          {t("directory.emptyBody")}
         </p>
       </div>
       <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -469,7 +477,7 @@ function EmptyLiveState() {
                      border border-black/10 hover:bg-black/[0.04] items-center"
           data-testid="sample-dashboards-cta"
         >
-          Preview a pool dashboard
+          {t("directory.previewCta")}
         </Link>
       </div>
     </div>

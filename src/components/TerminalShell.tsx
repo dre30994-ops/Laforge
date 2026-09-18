@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { Sidebar } from "@/components/Sidebar";
+import { useI18n } from "@/components/LanguageProvider";
 
 export function TerminalShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const closeTimer = useRef<number | null>(null);
   const pathname = useRouter().state.location.pathname;
+  const { t } = useI18n();
 
   const close = () => {
     setOpen(false);
@@ -58,7 +60,7 @@ export function TerminalShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           className={`forge-burger lg:hidden${open ? " is-open" : ""}`}
-          aria-label={open ? "Close menu" : "Open menu"}
+          aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
           aria-expanded={open}
           aria-controls="mobile-sidebar"
           onClick={toggle}

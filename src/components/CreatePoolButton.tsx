@@ -21,6 +21,7 @@ import { checkEvmAddress } from "@/lib/addressSyntax";
 import { EVM_NETWORKS, EVM_VISIBLE_NETWORKS, explorerTxUrl } from "@/lib/evmNetworks";
 import { sanitizeSocials } from "@/lib/sanitize";
 import { ChainGlyph } from "@/components/ChainSwitch";
+import { useI18n } from "@/components/LanguageProvider";
 
 /**
  * A green "Create" button that opens a modal collecting the inputs needed to
@@ -32,7 +33,7 @@ import { ChainGlyph } from "@/components/ChainSwitch";
 export function CreatePoolButton({
   className,
   style,
-  label = "Create",
+  label,
   showIcon = true,
 }: {
   className?: string;
@@ -40,6 +41,7 @@ export function CreatePoolButton({
   label?: string;
   showIcon?: boolean;
 } = {}) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   return (
@@ -68,7 +70,7 @@ export function CreatePoolButton({
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
         )}
-        {label}
+        {label ?? t("create.button")}
       </button>
 
       {open && <CreatePoolModal onClose={() => setOpen(false)} />}
@@ -79,6 +81,7 @@ export function CreatePoolButton({
 function CreatePoolModal({ onClose }: { onClose: () => void }) {
   const { createPool } = useEvmFactory();
   const { network, family, isWalletOnSelected, selectNetwork, switching, walletConnected } = useChain();
+  const { t, chainLabel, chainShort } = useI18n();
   const [token, setToken] = useState("");
   const [nickname, setNickname] = useState(""); // display-only, off-chain
   const [image, setImage] = useState(""); // data URL, off-chain
@@ -167,20 +170,20 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
   function buildInputs(): { inputs?: CreatePoolInputs; error?: string } {
     const dec = Number(decimals);
     if (!Number.isInteger(dec) || dec < 0 || dec > 36) {
-      return { error: "Decimals must be an integer between 0 and 36." };
+      return { error: t("create.decimalsRange") };
     }
     const sTaxPct = Number(stakeTax);
     const uTaxPct = Number(unstakeTax);
     if (Number.isNaN(sTaxPct) || Number.isNaN(uTaxPct)) {
-      return { error: "Taxes must be numbers (percent)." };
+      return { error: t("create.taxesNumbers") };
     }
     const dur = Number(durationDays);
     if (!Number.isInteger(dur) || dur < 1 || dur > maxDuration) {
       return {
         error:
           tier === PoolTier.Bronze
-            ? `Bronze tier is capped at ${BRONZE_MAX_DURATION_DAYS} days (48h).`
-            : `Duration must be a whole number of days between 1 and ${maxDuration}.`,
+            ? t("create.bronzeCap", { n: BRONZE_MAX_DURATION_DAYS })
+            : t("create.durationRange", { n: maxDuration }),
       };
     }
     const inputs: CreatePoolInputs = {
@@ -199,8 +202,8 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
   }
 
   /** The connected tier's fee, formatted in the chain's native token. */
-  function tierFeeLabel(t: PoolTier): string {
-    const wei = tierFeeWei(network, t);
+  function tierFeeLabel(pt: PoolTier): string {
+    const wei = tierFeeWei(network, pt);
     const whole = wei / BigInt("1000000000000000000");
     const frac = wei % BigInt("1000000000000000000");
     const fracStr = frac.toString().padStart(18, "0").slice(0, 4).replace(/0+$/, "");
@@ -219,7 +222,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
       setImage(dataUrl);
     } catch (e: unknown) {
       setImage("");
-      setImageError(e instanceof Error ? e.message : "Could not read the image.");
+      setImageError(e instanceof Error ? e.message : t("create.imageFail"));
     }
   }
 
@@ -234,7 +237,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
       setBanner(dataUrl);
     } catch (e: unknown) {
       setBanner("");
-      setBannerError(e instanceof Error ? e.message : "Could not read the image.");
+      setBannerError(e instanceof Error ? e.message : t("create.imageFail"));
     }
   }
 
@@ -251,17 +254,17 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
     }
     if (family === "solana") {
       setStatus("error");
-      setMessage("Switch to an EVM network to create a pool. Solana pool creation is separate.");
+      setMessage(t("create.switchEvm"));
       return;
     }
     if (!tokenCheck.ok) {
       setStatus("error");
-      setMessage(tokenCheck.error || `Enter a valid ${network.short} token address.`);
+      setMessage(tokenCheck.error || t("create.validToken", { short: chainShort(network.key, network.short) }));
       return;
     }
     if (treasuryTrimmed && !treasuryCheck.ok) {
       setStatus("error");
-      setMessage(treasuryCheck.error || `Enter a valid ${network.short} treasury address.`);
+      setMessage(treasuryCheck.error || t("create.validTreasury", { short: chainShort(network.key, network.short) }));
       return;
     }
     if (!isWalletOnSelected) {
@@ -270,7 +273,10 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
       } catch {
         setStatus("error");
         setMessage(
-          `Switch your wallet to ${network.label} to create a pool there. You can’t pay the ${network.nativeSymbol} fee from another chain.`,
+          t("create.switchChain", {
+            chain: chainLabel(network.key, network.label),
+            symbol: network.nativeSymbol,
+          }),
         );
         return;
       }
@@ -311,12 +317,12 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
         // Wait for the tx to be mined so the factory's poolCount/allPools/poolOf
         // actually reflect the new pool before we refresh the directory.
         setStatus("confirming");
-        setMessage("Waiting for confirmation…");
+        setMessage(t("create.waiting"));
         const mined = await waitForPoolTx(txHash, network);
 
         if (!mined) {
           setStatus("error");
-          setMessage("Transaction reverted. The pool was not created.");
+          setMessage(t("create.reverted"));
           return;
         }
       }
@@ -357,10 +363,10 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
         label: network.label,
       });
       setStatus("done");
-      setMessage(`Pool created on ${network.label}. Open it from the link below.`);
+      setMessage(t("create.created", { chain: chainLabel(network.key, network.label) }));
     } catch (e: unknown) {
       setStatus("error");
-      setMessage(e instanceof Error ? e.message : "Transaction failed.");
+      setMessage(e instanceof Error ? e.message : t("create.failed"));
     }
   }
 
@@ -396,12 +402,12 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
         }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-hi">Create Staking Pool</h2>
+          <h2 className="text-lg font-semibold text-hi">{t("create.title")}</h2>
           <button
             type="button"
             onClick={onClose}
             className="text-lo hover:text-hi text-xl leading-none"
-            aria-label="Close"
+            aria-label={t("create.close")}
           >
             ×
           </button>
@@ -414,22 +420,22 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             style={{ border: "1px solid rgba(220,38,38,0.4)", background: "rgba(220,38,38,0.08)" }}
             role="alert"
           >
-            <span className="text-red-500 font-semibold">Invalid treasury address.</span>{" "}
+            <span className="text-red-500 font-semibold">{t("create.treasuryInvalid")}</span>{" "}
             <span className="text-mid">
-              The treasury you entered isn&rsquo;t a valid 0x address. Stake and unstake tax fields
-              are disabled until you provide a valid address, or clear the treasury field to launch
-              a tax-free pool.
+              {t("create.treasuryInvalidBody")}
             </span>
           </div>
         )}
 
         <p className="label-term mb-3 !normal-case !tracking-normal text-lo">
-          Launch a staking pool for any token on <span className="text-hi">{network.label}</span>.
-          You become the operator and admin. The launch fee is paid in {network.nativeSymbol} on this chain only.
+          {t("create.intro", {
+            chain: chainLabel(network.key, network.label),
+            symbol: network.nativeSymbol,
+          })}
         </p>
 
         <div className="mb-4">
-          <span className="label-term block mb-2">Launch on</span>
+          <span className="label-term block mb-2">{t("create.launchOn")}</span>
           <div className="flex flex-wrap gap-1.5">
             {EVM_VISIBLE_NETWORKS.map((key) => {
               const n = EVM_NETWORKS[key];
@@ -443,9 +449,9 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
                               ${active ? "border-[#22c55e] bg-[#22c55e]/10 text-hi" : "border-black/10 text-mid hover:border-black/20"}`}
                 >
                   <ChainGlyph name={key} />
-                  {n.short}
+                  {chainShort(key, n.short)}
                   {key === "robinhood" && (
-                    <span className="text-[8px] uppercase tracking-wide text-lo">Primary</span>
+                    <span className="text-[8px] uppercase tracking-wide text-lo">{t("create.primary")}</span>
                   )}
                 </button>
               );
@@ -459,11 +465,13 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             style={{ border: "1px solid rgba(255,157,46,0.4)", background: "rgba(255,157,46,0.08)" }}
             role="status"
           >
-            <span className="text-amber-neon font-semibold">Wrong network.</span>{" "}
+            <span className="text-amber-neon font-semibold">{t("create.wrongNetwork")}</span>{" "}
             <span className="text-mid">
-              Your wallet is not on {network.label}. Creating this pool will ask you to switch
-              before any {network.nativeSymbol} is spent — you cannot create a {network.short} pool
-              from another chain.
+              {t("create.wrongNetworkBody", {
+                chain: chainLabel(network.key, network.label),
+                symbol: network.nativeSymbol,
+                short: chainShort(network.key, network.short),
+              })}
             </span>
             <button
               type="button"
@@ -471,7 +479,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
               onClick={() => void selectNetwork(network.key)}
               className="mt-2 block text-[11px] font-semibold text-hi underline"
             >
-              {switching ? "Switching…" : `Switch to ${network.label}`}
+              {switching ? t("pool.switching") : t("create.switchTo", { chain: chainLabel(network.key, network.label) })}
             </button>
           </div>
         )}
@@ -481,49 +489,50 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
           className="mb-4 rounded-lg px-3 py-2 text-[11px] leading-relaxed"
           style={{ border: "1px solid rgba(255,157,46,0.3)", background: "rgba(255,157,46,0.06)" }}
         >
-          <span className="text-amber-neon font-semibold">Note:</span>{" "}
+          <span className="text-amber-neon font-semibold">{t("create.note")}</span>{" "}
           <span className="text-mid">
-            stakers deposit into the token you choose. A malicious or buggy token
-            contract can block claim/unstake — only launch pools for tokens you and
-            your stakers can trust.
+            {t("create.tokenTrust")}
           </span>
         </p>
 
         {/* Tier picker */}
         <div className="mb-4">
-          <span className="label-term block mb-2">Pricing tier</span>
+          <span className="label-term block mb-2">{t("create.pricingTier")}</span>
           <div className="grid grid-cols-3 gap-2">
             <TierCard
               active={tier === PoolTier.Bronze}
               onClick={() => setTier(PoolTier.Bronze)}
-              name="Bronze"
+              name={t("create.bronze")}
               fee={tierFeeLabel(PoolTier.Bronze)}
-              perks="Up to 48h. No banner/socials."
+              perks={t("create.bronzePerks")}
             />
             <TierCard
               active={tier === PoolTier.Ecosystem}
               onClick={() => setTier(PoolTier.Ecosystem)}
-              name="Ecosystem"
+              name={t("create.ecosystem")}
               fee={tierFeeLabel(PoolTier.Ecosystem)}
-              perks="Up to 30d. Banner + social links + dashboard."
+              perks={t("create.ecoPerks")}
             />
             <TierCard
               active={tier === PoolTier.Marketing}
               onClick={() => setTier(PoolTier.Marketing)}
-              name="Marketing"
+              name={t("create.marketing")}
               fee={tierFeeLabel(PoolTier.Marketing)}
-              perks="12h trending + verified-safe badge."
+              perks={t("create.mktPerks")}
             />
           </div>
           <p className="mt-2 text-[11px] text-lo">
-            Selected: <span className="text-hi">{tierFeeLabel(tier)}</span> launch fee, paid in{" "}
-            {network.nativeSymbol} to the {network.short} factory. Bronze and Ecosystem operators
-            can still unlock Marketing later from the pool page — anyone can pay {tierFeeLabel(PoolTier.Marketing)} to boost it.
+            {t("create.selectedFee", {
+              fee: tierFeeLabel(tier),
+              symbol: network.nativeSymbol,
+              chain: chainShort(network.key, network.short),
+              mkt: tierFeeLabel(PoolTier.Marketing),
+            })}
           </p>
         </div>
 
         <div className="space-y-3">
-          <Field label={`Token address on ${network.short} (ERC-20)`}>
+          <Field label={t("create.tokenAddress", { chain: chainShort(network.key, network.short) })}>
             <Input value={token} onChange={setToken} placeholder="0x…" />
             <span className="mt-1 block text-[10px] text-lo">{network.addressHint}</span>
             {tokenInvalid && (
@@ -534,11 +543,11 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             )}
           </Field>
 
-          <Field label="Pool nickname (optional)">
-            <Input value={nickname} onChange={setNickname} placeholder="e.g. Golden Anvil Pool" />
+          <Field label={t("create.nickname")}>
+            <Input value={nickname} onChange={setNickname} placeholder={t("create.nicknamePh")} />
           </Field>
 
-          <Field label="Pool image (optional)">
+          <Field label={t("create.image")}>
             <div className="flex items-center gap-3">
               {image ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -549,7 +558,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
                 />
               ) : (
                 <div className="h-12 w-12 rounded-lg border border-dashed border-black/15 bg-black/[0.03] shrink-0 grid place-items-center text-lo text-[10px]">
-                  none
+                  {t("create.none")}
                 </div>
               )}
               <div className="flex flex-col gap-1">
@@ -570,7 +579,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
                     }}
                     className="self-start text-[10px] text-lo hover:text-hi underline"
                   >
-                    Remove image
+                    {t("create.removeImage")}
                   </button>
                 )}
               </div>
@@ -579,25 +588,25 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
               <span className="mt-1 block text-[10px] text-red-300">{imageError}</span>
             )}
             <span className="mt-1 block text-[10px] text-lo">
-              PNG, JPEG, WebP, or GIF · min 400×400 · no SVG
+              {t("create.imageHint")}
             </span>
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Token decimals">
+            <Field label={t("create.decimals")}>
               <Input value={decimals} onChange={setDecimals} placeholder="18" inputMode="numeric" />
             </Field>
-            <Field label={`Duration (days, 1–${maxDuration})`}>
+            <Field label={t("create.duration", { max: maxDuration })}>
               <Input value={durationDays} onChange={onDurationChange} placeholder={String(maxDuration)} inputMode="numeric" />
             </Field>
           </div>
 
-          <Field label="Treasury (optional — blank = no tax)">
+          <Field label={t("create.treasury")}>
             <Input value={treasury} onChange={setTreasury} placeholder="0x…" />
             {treasuryInvalid && (
               <span className="mt-1 block text-[10px] text-red-500">
                 {treasuryCheck.error ||
-                  `That’s not a valid ${network.short} 0x address. Enter a valid treasury to enable taxes, or clear the field for a tax-free pool.`}
+                  t("create.treasuryNotValid", { short: chainShort(network.key, network.short) })}
               </span>
             )}
             {treasuryCheck.warning && treasuryValid && (
@@ -605,8 +614,12 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             )}
             {!treasuryTrimmed && (
               <span className="mt-1.5 block text-[11px] text-amber-700 leading-snug" role="status">
-                No treasury — you will not receive any tokens from this pool. Stake and unstake
-                taxes stay at 0% until you set a valid treasury that can accept the token.
+                {t("create.noTreasury")}
+              </span>
+            )}
+            {treasuryValid && (
+              <span className="mt-1.5 block text-[11px] text-mid leading-snug">
+                {t("create.treasuryOk")}
               </span>
             )}
           </Field>
@@ -616,35 +629,31 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             className="rounded-lg px-3 py-2 text-[11px] leading-relaxed"
             style={{ border: "1px solid rgba(217,132,19,0.35)", background: "rgba(217,132,19,0.06)" }}
           >
-            <span className="text-amber-neon font-semibold">Important:</span>{" "}
+            <span className="text-amber-neon font-semibold">{t("create.important")}</span>{" "}
             <span className="text-mid">
-              Stake and unstake taxes are deducted into the pool, then released to your treasury.
-              Claim has no tax. The app sends the release automatically after each stake/unstake
-              (a second wallet confirmation). Anyone can also press &ldquo;Send taxes to treasury&rdquo;
-              on the pool page. Use a wallet or a contract that can receive this ERC-20.
+              {t("create.taxFlow")}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label={`Stake tax % (≤ ${MAX_TAX_BPS / 100}%)`}>
+            <Field label={t("create.stakeTax", { max: MAX_TAX_BPS / 100 })}>
               <Input value={stakeTax} onChange={setStakeTax} placeholder="0" inputMode="decimal" disabled={taxesDisabled} />
             </Field>
-            <Field label={`Unstake tax % (≤ ${MAX_TAX_BPS / 100}%)`}>
+            <Field label={t("create.unstakeTax", { max: MAX_TAX_BPS / 100 })}>
               <Input value={unstakeTax} onChange={setUnstakeTax} placeholder="0" inputMode="decimal" disabled={taxesDisabled} />
             </Field>
           </div>
           {taxesDisabled && (
             <p className="text-[10px] text-lo -mt-1">
-              Enter a valid treasury address above to set stake / unstake taxes. Without a treasury
-              this pool is tax-free.
+              {t("create.taxesNeedTreasury")}
             </p>
           )}
 
           <div className="grid grid-cols-2 gap-3 items-end">
-            <Field label="Funding (reward tokens, one-time)">
+            <Field label={t("create.funding")}>
               <Input value={fundingAmount} onChange={setFundingAmount} placeholder="100000" inputMode="decimal" />
             </Field>
-            <Field label="Min stake (tokens)">
+            <Field label={t("create.minStake")}>
               <Input value={minStake} onChange={setMinStake} placeholder="1000" inputMode="decimal" />
             </Field>
           </div>
@@ -653,15 +662,15 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
           {canBrand ? (
             <div className="space-y-3 rounded-xl border border-black/10 bg-black/[0.02] p-3">
               <div className="flex items-center justify-between">
-                <span className="label-term">Branding &amp; socials</span>
+                <span className="label-term">{t("create.branding")}</span>
                 {isMarketing && (
                   <span className="text-[10px] text-[#22c55e]">
-                    Marketing: 12h trending + verified-safe badge
+                    {t("create.marketingBadge")}
                   </span>
                 )}
               </div>
 
-              <Field label="Banner image (optional)">
+              <Field label={t("create.banner")}>
                 <div className="flex items-center gap-3">
                   {banner ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -672,7 +681,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
                     />
                   ) : (
                     <div className="h-12 w-24 rounded-lg border border-dashed border-black/15 bg-black/[0.03] shrink-0 grid place-items-center text-lo text-[10px]">
-                      none
+                      {t("create.none")}
                     </div>
                   )}
                   <input
@@ -688,30 +697,28 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
                   <span className="mt-1 block text-[10px] text-red-300">{bannerError}</span>
                 )}
                 <span className="mt-1 block text-[10px] text-lo">
-                  Same rules as the pool image: raster only, min 400×400, no SVG
+                  {t("create.bannerHint")}
                 </span>
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Website">
+                <Field label={t("create.website")}>
                   <Input value={website} onChange={setWebsite} placeholder="https://…" inputMode="text" />
                 </Field>
-                <Field label="Twitter / X">
+                <Field label={t("create.twitter")}>
                   <Input value={twitter} onChange={setTwitter} placeholder="https://x.com/…" inputMode="text" />
                 </Field>
-                <Field label="Telegram">
+                <Field label={t("create.telegram")}>
                   <Input value={telegram} onChange={setTelegram} placeholder="https://t.me/…" inputMode="text" />
                 </Field>
-                <Field label="Discord">
+                <Field label={t("create.discord")}>
                   <Input value={discord} onChange={setDiscord} placeholder="https://discord.gg/…" inputMode="text" />
                 </Field>
               </div>
             </div>
           ) : (
             <p className="text-[11px] text-lo rounded-xl border border-dashed border-black/10 p-3">
-              Custom banner and social links are available on the{" "}
-              <span className="text-hi">Ecosystem</span> and{" "}
-              <span className="text-hi">Marketing</span> tiers.
+              {t("create.brandingLocked")}
             </p>
           )}
         </div>
@@ -747,7 +754,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-neon underline"
                   data-testid="created-pool-link"
                 >
-                  Open {createdPool.label} pool dashboard →
+                  {t("create.openNamed", { chain: chainLabel(network.key, createdPool.label) })}
                 </Link>
                 <div className="mt-1 text-[10px] text-lo break-all">{createdPool.address}</div>
               </div>
@@ -761,7 +768,7 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             className="h-10 px-4 rounded-xl text-sm text-lo hover:text-hi border border-black/10"
           >
-            Cancel
+            {t("create.cancel")}
           </button>
           <button
             type="button"
@@ -772,10 +779,10 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             style={{ background: "linear-gradient(180deg, #22c55e, #16a34a)" }}
           >
             {status === "submitting"
-              ? "Submitting…"
+              ? t("create.submitting")
               : status === "confirming"
-                ? "Confirming…"
-                : "Create Pool"}
+                ? t("create.confirming")
+                : t("create.submit")}
           </button>
         </div>
       </div>

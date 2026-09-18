@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { TerminalShell } from "@/components/TerminalShell";
 import { EthereumMark, GoldQuestionMark, RobinhoodFeather, SolanaMark } from "@/components/BrandMarks";
+import { useI18n } from "@/components/LanguageProvider";
 
 /** A single roadmap milestone. */
 type Checkpoint = {
@@ -119,6 +119,8 @@ function CheckpointIcon({ kind }: { kind: Checkpoint["icon"] }) {
 }
 
 export default function RoadmapPage() {
+  const { t, tList } = useI18n();
+  const copy = tList<{ title: string; blurb: string }>("roadmap.items");
   const doneCount = CHECKPOINTS.filter((c) => c.status === "done").length;
 
   return (
@@ -127,19 +129,19 @@ export default function RoadmapPage() {
           <div className="max-w-[880px] mx-auto space-y-6">
             <header className="animate-rise">
               <Link to="/dashboard" className="label-term hover:text-gold-neon transition-colors">
-                ← Back to dashboard
+                {t("common.back")}
               </Link>
               <div className="flex items-end justify-between flex-wrap gap-3 mt-3">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-hi">
-                    Roadmap
+                    {t("roadmap.title")}
                   </h1>
                   <p className="text-mid mt-2 leading-relaxed">
-                    The path from token launch to Laforge World going live — shipped in order.
+                    {t("roadmap.intro")}
                   </p>
                 </div>
                 <div className="glass !rounded-xl px-4 py-2.5 text-center">
-                  <div className="label-term !text-[9px]">Progress</div>
+                  <div className="label-term !text-[9px]">{t("roadmap.progress")}</div>
                   <div className="mono text-sm text-[#22c55e]">
                     {doneCount} / {CHECKPOINTS.length}
                   </div>
@@ -150,14 +152,18 @@ export default function RoadmapPage() {
             <section className="glass p-6 animate-rise">
               <ol className="relative">
                 {CHECKPOINTS.map((c, i) => (
-                  <CheckpointRow key={c.n} c={c} last={i === CHECKPOINTS.length - 1} />
+                  <CheckpointRow
+                    key={c.n}
+                    c={{ ...c, title: copy[i]?.title ?? c.title, blurb: copy[i]?.blurb ?? c.blurb }}
+                    last={i === CHECKPOINTS.length - 1}
+                  />
                 ))}
               </ol>
             </section>
 
             <footer className="pt-2 pb-4 text-center">
               <p className="label-term !tracking-normal !normal-case text-lo">
-                Roadmap items are directional and may shift as development progresses.
+                {t("roadmap.disclaimer")}
               </p>
             </footer>
           </div>
@@ -218,10 +224,11 @@ function CheckpointRow({ c, last }: { c: Checkpoint; last: boolean }) {
 }
 
 function StatusPill({ status }: { status: Checkpoint["status"] }) {
+  const { t } = useI18n();
   const map = {
-    done: { label: "Complete", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-    active: { label: "In progress", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-    upcoming: { label: "Upcoming", color: "var(--mid)", bg: "rgba(20,18,10,0.04)" },
+    done: { label: t("roadmap.done"), color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+    active: { label: t("roadmap.active"), color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+    upcoming: { label: t("roadmap.upcoming"), color: "var(--mid)", bg: "rgba(20,18,10,0.04)" },
   } as const;
   const s = map[status];
   return (

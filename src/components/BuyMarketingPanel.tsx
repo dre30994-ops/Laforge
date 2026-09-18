@@ -14,6 +14,7 @@ import { sanitizeSocials } from "@/lib/sanitize";
 import { emitPoolsChanged } from "@/lib/poolEvents";
 import { explorerTxUrl, type EvmNetwork } from "@/lib/evmNetworks";
 import type { PoolSummary } from "@/lib/factoryClient";
+import { useI18n } from "@/components/LanguageProvider";
 
 const PURPLE =
   "linear-gradient(180deg, #c084fc 0%, #a855f7 42%, #7c3aed 100%)";
@@ -33,6 +34,7 @@ export function BuyMarketingPanel({
   onUpdated: () => void;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const config = useConfig();
   const { address, isConnected, chainId } = useAccount();
   const { connectAsync, connectors } = useConnect();
@@ -60,7 +62,7 @@ export function BuyMarketingPanel({
     setBusy(true);
     try {
       if (demo) {
-        setMessage(`Demo add-on. Live pools pay ${feeLabel} to unlock a 12h trending slot.`);
+        setMessage(t("marketing.demoMsg", { fee: feeLabel }));
         return;
       }
       if (!isConnected) {
@@ -103,15 +105,15 @@ export function BuyMarketingPanel({
       setMessage(
         isOperator
           ? unlocked
-            ? "Trending window extended. Banner and socials stay live."
-            : "Marketing unlocked. Add a banner and socials below."
+            ? t("marketing.opExtend")
+            : t("marketing.opUnlock")
           : unlocked
-            ? "Boost received. Trending extended 12 hours. This was not a stake."
-            : "Boost received. This pool is trending for 12 hours. Banner, socials, and verified stay with the operator. This was not a stake.",
+            ? t("marketing.boostExtend")
+            : t("marketing.boostNew"),
       );
       onUpdated();
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : "Payment failed.");
+      setMessage(e instanceof Error ? e.message : t("marketing.failed"));
     } finally {
       setBusy(false);
     }
@@ -131,9 +133,10 @@ export function BuyMarketingPanel({
     unlocked,
     isOperator,
     onUpdated,
+    t,
   ]);
 
-  const cta = unlocked ? `Extend Marketing · ${feeLabel}` : `Marketing Add-on · ${feeLabel}`;
+  const cta = unlocked ? t("marketing.extend", { fee: feeLabel }) : t("marketing.addon", { fee: feeLabel });
   const canPay = demo || deskConfigured(network);
 
   const button = (
@@ -146,7 +149,7 @@ export function BuyMarketingPanel({
       style={{ background: PURPLE }}
       data-testid="marketing-addon-btn"
     >
-      {busy ? "Confirm in wallet…" : cta}
+      {busy ? t("marketing.confirmWallet") : cta}
     </button>
   );
 
@@ -168,18 +171,17 @@ export function BuyMarketingPanel({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-mid">Community boost</p>
+        <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-mid">{t("marketing.community")}</p>
         <h3 id="marketing-addon-title" className="mt-1 text-base font-semibold text-hi">
-          {unlocked ? "Extend Marketing Add-on" : "Marketing Add-on"}
+          {unlocked ? t("marketing.extendTitle") : t("marketing.title")}
         </h3>
         <p className="mt-2 text-sm text-mid leading-relaxed">
-          You are about to pay <span className="text-hi font-semibold">{feeLabel}</span> on{" "}
-          {network.label}. This is a boost, not a stake — it does not deposit tokens.
+          {t("marketing.aboutTo", { fee: feeLabel, chain: network.label })}
         </p>
         <ul className="mt-3 space-y-1.5 text-sm text-hi">
-          <li>Places this pool in a 12-hour trending slot.</li>
-          <li>{unlocked ? "Extends the current Marketing window." : "Unlocks Marketing on this pool."}</li>
-          <li>Banner, socials, and the verified badge stay with the operator.</li>
+          <li>{t("marketing.slot")}</li>
+          <li>{unlocked ? t("marketing.extendWindow") : t("marketing.unlock")}</li>
+          <li>{t("marketing.branding")}</li>
         </ul>
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
@@ -188,7 +190,7 @@ export function BuyMarketingPanel({
             onClick={() => setConfirmOpen(false)}
             className="h-10 px-4 rounded-xl text-xs font-semibold text-hi border border-black/15 hover:bg-black/[0.04]"
           >
-            Cancel
+            {t("marketing.cancel")}
           </button>
           <button
             type="button"
@@ -200,7 +202,7 @@ export function BuyMarketingPanel({
             className="h-10 px-4 rounded-xl text-xs font-semibold text-white border-none"
             style={{ background: PURPLE }}
           >
-            {busy ? "Confirm in wallet…" : `Confirm · ${feeLabel}`}
+            {busy ? t("marketing.confirmWallet") : t("marketing.confirm", { fee: feeLabel })}
           </button>
         </div>
       </div>
@@ -212,14 +214,14 @@ export function BuyMarketingPanel({
       <div className="shrink-0 flex flex-col items-stretch sm:items-end gap-1.5 min-w-[9.5rem]">
         {trending && (
           <span className="self-end rounded-full px-2 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-500/30">
-            Trending live
+            {t("marketing.trendingLive")}
           </span>
         )}
         {canPay ? (
           button
         ) : (
           <p className="text-[10px] text-amber-700 text-right max-w-[12rem]">
-            Desk not live on {network.short} yet.
+            {t("marketing.deskMissing", { chain: network.short })}
           </p>
         )}
         {message && (
@@ -249,28 +251,24 @@ export function BuyMarketingPanel({
     <section className="glass glass-gold p-5 space-y-3" data-testid="buy-marketing">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="label-term mb-1">Community boost</p>
+          <p className="label-term mb-1">{t("marketing.community")}</p>
           <h2 className="text-sm font-semibold text-hi tracking-tight">
-            {unlocked ? "Marketing privileges" : "Boost this pool anytime"}
+            {unlocked ? t("marketing.privileges") : t("marketing.boostAnytime")}
           </h2>
           <p className="text-sm text-mid mt-1.5 leading-relaxed max-w-xl">
-            Anyone can pay {feeLabel} on {network.label} to unlock Marketing on this pool and put
-            it in a 12-hour trending slot. Pay again to extend. This is a boost, not a stake —
-            it does not deposit tokens. Banner, socials, and the verified badge stay with the
-            operator. Launch tier on the pool contract does not change.
+            {t("marketing.bodyLong", { fee: feeLabel, chain: network.label })}
           </p>
         </div>
         {trending && (
           <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-500/30">
-            Trending live
+            {t("marketing.trendingLive")}
           </span>
         )}
       </div>
 
       {!canPay ? (
         <p className="text-xs text-amber-700">
-          The Marketing desk for {network.label} is not deployed yet. Launch fees still work; the
-          anytime boost will light up as soon as the desk address is set.
+          {t("marketing.deskNotDeployed", { chain: network.label })}
         </p>
       ) : (
         button
