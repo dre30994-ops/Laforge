@@ -14,7 +14,7 @@ import type { Adapter } from "@solana/wallet-adapter-base";
 import { wagmiConfig } from "@/lib/chains";
 import { privyAppId, privyConfig } from "@/lib/privy";
 import { PrivyWagmiSync } from "@/components/PrivyWagmiSync";
-import { PrivyErrorBoundary } from "@/components/PrivyErrorBoundary";
+import { PrivyModalLayer } from "@/components/PrivyModalLayer";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
@@ -55,6 +55,7 @@ export function WalletContextProvider({ children }: { children: React.ReactNode 
   return (
     <PrivyErrorBoundary fallback={shell(false)}>
       <PrivyProvider appId={appId} config={privyConfig}>
+        <PrivyModalLayer />
         {shell(true)}
       </PrivyProvider>
     </PrivyErrorBoundary>
