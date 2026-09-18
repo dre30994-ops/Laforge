@@ -62,26 +62,10 @@ export function PoolVaultStats({ pool }: { pool: PoolSummary }) {
       v: formatUsd(market.tvlUsd),
       sub: price != null ? `${formatUsdPrice(price)} · ${qualityNote}` : qualityNote,
     },
-    {
-      k: "Stake volume",
-      v: formatUsd(market.stakeVolumeUsd),
-      sub:
-        market.stakeVolumeTokens != null
-          ? `${formatCompact(market.stakeVolumeTokens)} in${pool.symbol ? ` $${pool.symbol}` : ""}`
-          : "lifetime in",
-    },
-    {
-      k: "Unstake volume",
-      v: formatUsd(market.unstakeVolumeUsd),
-      sub:
-        market.unstakeVolumeTokens != null
-          ? `${formatCompact(market.unstakeVolumeTokens)} out${pool.symbol ? ` $${pool.symbol}` : ""}`
-          : "lifetime out",
-    },
   ];
 
   return (
-    <section className="grid grid-cols-2 md:grid-cols-3 gap-3" data-testid="pool-vault-stats">
+    <section className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="pool-vault-stats">
       {rows.map((row) => (
         <div key={row.k} className="glass !rounded-2xl p-4">
           <div className="mono text-lg font-bold text-gold-neon leading-tight">{row.v}</div>
