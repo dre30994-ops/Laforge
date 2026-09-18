@@ -44,8 +44,6 @@ export default function Home() {
               <ChainSwitch compact />
             </div>
 
-            <OfficialLinks compact />
-
             <StakingHero />
 
             <HeroMetrics hideTvl />

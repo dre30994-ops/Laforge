@@ -24,7 +24,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "My pool image was rejected",
-    a: "Use PNG, JPEG, WebP, or GIF — no SVG. The file must be under 15 MB and at least 1000×1000 pixels. Banners follow the same rules and only apply to Ecosystem and Marketing.",
+    a: "Use PNG, JPEG, WebP, or GIF — no SVG. The file must be under 15 MB and at least 400×400 pixels. Banners follow the same rules and only apply to Ecosystem and Marketing.",
   },
   {
     q: "I can’t find my pool",

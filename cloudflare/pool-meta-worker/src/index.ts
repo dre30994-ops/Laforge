@@ -344,6 +344,8 @@ export default {
       const headers = new Headers(CORS);
       headers.set("Content-Type", obj.httpMetadata?.contentType || "application/octet-stream");
       headers.set("X-Content-Type-Options", "nosniff");
+      headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
+      headers.set("Content-Disposition", "inline");
       headers.set("Cache-Control", "public, max-age=31536000, immutable");
       return new Response(obj.body, { headers });
     }

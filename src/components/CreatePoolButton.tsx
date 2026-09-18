@@ -578,6 +578,9 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
             {imageError && (
               <span className="mt-1 block text-[10px] text-red-300">{imageError}</span>
             )}
+            <span className="mt-1 block text-[10px] text-lo">
+              PNG, JPEG, WebP, or GIF · min 400×400 · no SVG
+            </span>
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -684,6 +687,9 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
                 {bannerError && (
                   <span className="mt-1 block text-[10px] text-red-300">{bannerError}</span>
                 )}
+                <span className="mt-1 block text-[10px] text-lo">
+                  Same rules as the pool image: raster only, min 400×400, no SVG
+                </span>
               </Field>
 
               <div className="grid grid-cols-2 gap-3">

@@ -29,7 +29,7 @@ const API_BASE = (publicEnv("POOL_META_API") ?? "").replace(/\/$/, "");
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
 
 /** Minimum accepted image resolution (both dimensions), in pixels. */
-export const MIN_IMAGE_DIMENSION = 1000; // 1000 x 1000 px
+export const MIN_IMAGE_DIMENSION = 400;
 
 /**
  * Allowed raster image content types. SVG is deliberately excluded: it is an
@@ -476,7 +476,7 @@ function contentTypeFromDataUrl(input: string): string | null {
  * Enforced limits:
  *   - Type: must be one of ALLOWED_IMAGE_TYPES (raster only; SVG rejected).
  *   - Size: raw file <= MAX_IMAGE_BYTES (15 MB).
- *   - Resolution: both dimensions >= MIN_IMAGE_DIMENSION (1000 px).
+ *   - Resolution: both dimensions >= MIN_IMAGE_DIMENSION (400 px).
  *
  * Note: this is a client-side UX gate only. The backend independently
  * re-validates the type by sniffing the actual bytes (the browser is untrusted).

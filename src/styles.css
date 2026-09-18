@@ -862,7 +862,7 @@ body:has(#headlessui-portal-root [role="dialog"]) .forge-drawer-scrim {
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  display: grid;
+  display: none;
   place-items: center;
   color: var(--color-gold-800);
   background:
@@ -886,6 +886,20 @@ body:has(#headlessui-portal-root [role="dialog"]) .forge-drawer-scrim {
 
 .forge-burger:active {
   transform: scale(0.96);
+}
+
+@media (max-width: 1023px) {
+  .forge-burger {
+    display: grid;
+  }
+}
+
+@media (min-width: 1024px) {
+  .forge-burger,
+  .forge-drawer,
+  .forge-drawer-scrim {
+    display: none !important;
+  }
 }
 
 .forge-burger.is-open {
