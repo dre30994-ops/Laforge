@@ -16,7 +16,7 @@ export const X_URL = publicEnv("X_URL") || `https://x.com/${X_HANDLE}`;
  * Project token contract. Override with VITE_TOKEN_CA / NEXT_PUBLIC_TOKEN_CA.
  */
 export const TOKEN_SYMBOL = publicEnv("TOKEN_SYMBOL") || "LAFORGE";
-const FALLBACK_TOKEN_CA = "0xef97728563a4cbd5dd16ebf696dd662dc7247516";
+const FALLBACK_TOKEN_CA = "0x82201d76ca0ed7497ecc29f61c87b04924b2df3b";
 export const TOKEN_CA = checksumAddress(
   (publicEnv("TOKEN_CA") || FALLBACK_TOKEN_CA).trim(),
 );
