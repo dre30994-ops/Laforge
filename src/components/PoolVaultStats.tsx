@@ -60,7 +60,10 @@ export function PoolVaultStats({ pool }: { pool: PoolSummary }) {
     {
       k: "USD value locked",
       v: formatUsd(market.tvlUsd),
-      sub: price != null ? `${formatUsdPrice(price)} · ${qualityNote}` : qualityNote,
+      sub:
+        price != null
+          ? `${formatUsdPrice(price)} · staked + rewards · ${qualityNote}`
+          : qualityNote,
     },
   ];
 

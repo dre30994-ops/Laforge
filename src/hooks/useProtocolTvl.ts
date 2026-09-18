@@ -33,11 +33,22 @@ const CACHE_TTL_MS = 30_000;
 let cached: { at: number; value: Omit<ProtocolTvl, "loading"> } | null = null;
 let inflight: Promise<Omit<ProtocolTvl, "loading">> | null = null;
 
+function asTokens(raw: bigint | undefined, decimals: number): number {
+  if (raw == null) return 0;
+  const n = Number(formatUnits(raw, decimals || 18));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** USD of every token sitting in the pool: staked principal, remaining rewards, unpaid tax. */
 function lockedUsd(pool: PoolSummary, price: number | undefined): number | null {
   if (price == null || !(price > 0)) return null;
-  const n = Number(formatUnits(pool.stakeVaultBalance, pool.decimals || 18));
-  if (!Number.isFinite(n)) return null;
-  return n * price;
+  const dec = pool.decimals || 18;
+  const n =
+    asTokens(pool.stakeVaultBalance, dec) +
+    asTokens(pool.rewardVaultBalance, dec) +
+    asTokens(pool.owedToTreasury, dec);
+  const usd = n * price;
+  return Number.isFinite(usd) ? usd : null;
 }
 
 async function computeProtocolTvl(): Promise<Omit<ProtocolTvl, "loading">> {

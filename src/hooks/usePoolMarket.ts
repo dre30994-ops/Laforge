@@ -6,6 +6,7 @@ import { fetchTokenQuote, type TokenQuote } from "@/lib/tokenQuote";
 export type PoolMarket = {
   quote: TokenQuote | null;
   lockedTokens: number;
+  rewardTokens: number;
   tvlUsd: number | null;
   loading: boolean;
 };
@@ -71,12 +72,15 @@ export function usePoolMarket(pool: PoolSummary | null): PoolMarket {
 
   const dec = pool?.decimals || 18;
   const lockedTokens = tokens(pool?.stakeVaultBalance, dec) ?? 0;
+  const rewardTokens = tokens(pool?.rewardVaultBalance, dec) ?? 0;
+  const taxTokens = tokens(pool?.owedToTreasury, dec) ?? 0;
   const price = quote?.priceUsd ?? null;
 
   return {
     quote,
     lockedTokens,
-    tvlUsd: usd(lockedTokens, price),
+    rewardTokens,
+    tvlUsd: usd(lockedTokens + rewardTokens + taxTokens, price),
     loading,
   };
 }
