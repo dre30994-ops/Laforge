@@ -81,21 +81,10 @@ export function OfficialLinks({
 
   return (
     <section className="glass p-6 animate-rise" data-testid="official-links">
-      {!contractsOnly && (
+      {!contractsOnly && hasTokenCa() && (
         <>
       <p className="label-term mb-3">Official</p>
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        <a
-          href={X_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 h-9 px-3 rounded-lg text-sm font-semibold text-hi border border-black/10 bg-black/[0.03] hover:border-gold-400/50 hover:text-gold-700 transition-colors"
-        >
-          <XMark className="w-3.5 h-3.5" />
-          @{X_HANDLE}
-          <ExternalLink size={12} className="text-lo" />
-        </a>
-        {hasTokenCa() && (
           <div className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-lg border border-black/10 bg-black/[0.03]">
             <span className="label-term !tracking-normal !normal-case !text-[10px] mr-1">
               {TOKEN_SYMBOL} CA
@@ -117,12 +106,24 @@ export function OfficialLinks({
             )}
             <CopyButton value={TOKEN_CA} label={`${TOKEN_SYMBOL} contract`} />
           </div>
-        )}
       </div>
         </>
       )}
 
-      <p className="label-term mb-3">Verified contracts</p>
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <p className="label-term">Verified contracts</p>
+        <a
+          href={X_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold text-hi border border-black/10 hover:border-gold-400/50 hover:text-gold-700 transition-colors"
+          aria-label={`Laforge on X, ${X_HANDLE}`}
+        >
+          <XMark className="w-3 h-3" />
+          @{X_HANDLE}
+          <ExternalLink size={11} className="text-lo" />
+        </a>
+      </div>
       <ul className="divide-y divide-black/[0.06]">
         {contracts.map((row) => (
           <li
@@ -151,20 +152,5 @@ export function OfficialLinks({
         ))}
       </ul>
     </section>
-  );
-}
-
-export function SidebarXLink() {
-  return (
-    <a
-      href={X_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="nav-item mt-1"
-      aria-label={`Laforge on X, ${X_HANDLE}`}
-    >
-      <XMark className="w-[16px] h-[16px] shrink-0" />
-      <span>X · @{X_HANDLE}</span>
-    </a>
   );
 }

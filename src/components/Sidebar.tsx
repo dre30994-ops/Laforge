@@ -3,7 +3,6 @@ import { useSolanaWallet } from "@/hooks/useSolanaWallet";
 import { WalletButton } from "@/components/WalletButton";
 import { ChainSwitch } from "@/components/ChainSwitch";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
-import { SidebarXLink } from "@/components/OfficialLinks";
 import { useChain } from "@/components/ChainProvider";
 
 type IconProps = { className?: string };
@@ -148,7 +147,7 @@ export function Sidebar() {
               key={item.key}
               to={item.href}
               aria-current={active ? "page" : undefined}
-              className={`nav-item ${active ? "active" : ""} ${("className" in item ? item.className : "") ?? ""}`}
+              className={`nav-item ${active ? "active" : ""} ${"className" in item ? item.className : ""}`}
             >
               <Icon className="w-[18px] h-[18px] shrink-0" />
               <span>{item.label}</span>
@@ -178,9 +177,7 @@ export function Sidebar() {
           </span>
           <span>Samples</span>
         </Link>
-        <SidebarXLink />
       </nav>
-
       {/* Status + wallet */}
       <div className="mt-4 pt-4 border-t border-black/[0.06] space-y-3 shrink-0">
         <div className="flex items-center gap-2 px-1">

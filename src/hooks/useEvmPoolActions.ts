@@ -9,6 +9,7 @@ import {
   type PoolSummary,
 } from "@/lib/factoryClient";
 import type { EvmNetwork } from "@/lib/evmNetworks";
+import { shortAddress } from "@/lib/brand";
 import {
   applyMockClaim,
   applyMockStake,
@@ -69,6 +70,14 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
     [],
   );
 
+  const taxDest =
+    pool.treasury && pool.treasury !== "0x0000000000000000000000000000000000000000"
+      ? shortAddress(pool.treasury)
+      : null;
+  const taxNote = taxDest
+    ? ` Tax (if any) is released to the pool treasury ${taxDest}.`
+    : " This pool has no treasury, so stake/unstake tax is 0.";
+
   const stake = useCallback(
     async (raw: string) => {
       const amount = parseAmount(raw);
@@ -85,9 +94,9 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
         const wallet = await ensureWallet();
         if (!wallet) throw new Error("Connect an EVM wallet to stake.");
         return stakeIntoPool(wallet, pool, network, amount);
-      }, "Stake confirmed. Tax is sent to the treasury if this pool has one.");
+      }, `Stake confirmed.${taxNote}`);
     },
-    [parseAmount, run, mock, pool, user, ensureWallet, network],
+    [parseAmount, run, mock, pool, user, ensureWallet, network, taxNote],
   );
 
   const unstake = useCallback(
@@ -106,9 +115,9 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
         const wallet = await ensureWallet();
         if (!wallet) throw new Error("Connect an EVM wallet to unstake.");
         return unstakeFromPool(wallet, pool, network, amount);
-      }, "Unstake confirmed. Tax is sent to the treasury if this pool has one.");
+      }, `Unstake confirmed.${taxNote}`);
     },
-    [parseAmount, run, mock, pool, user, ensureWallet, network],
+    [parseAmount, run, mock, pool, user, ensureWallet, network, taxNote],
   );
 
   const claim = useCallback(async () => {
