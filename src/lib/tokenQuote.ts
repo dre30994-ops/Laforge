@@ -32,7 +32,7 @@ export type TokenQuote = {
 const MEMORY_TTL_MS = 45_000;
 const DISK_TTL_MS = 5 * 60_000;
 const THIN_LIQUIDITY_USD = 5_000;
-const DISK_KEY = "forge.tokenQuote.v1";
+const DISK_KEY = "forge.tokenQuote.v3";
 const QUOTE_CONCURRENCY = 6;
 
 /**
@@ -61,6 +61,7 @@ const GECKO_SLUGS: Record<number, string[]> = {
   8453: ["base"],
   56: ["bsc"],
   999: ["hyperevm"],
+  4663: ["robinhood"],
 };
 
 const STABLES: Record<number, Set<string>> = {
@@ -223,19 +224,20 @@ function asPairs(raw: unknown): DexPair[] {
   return [];
 }
 
-/** USD price of `token` in a pair. Inverts when the token is the quote side (WHYPE, WBNB). */
-function pairPriceUsd(pair: DexPair, token: string): number | null {
+/** USD price of `token` in a pair. Prefer the base-side `priceUsd`; invert only as fallback. */
+function pairPriceUsd(pair: DexPair, token: string): { price: number; side: "base" | "quote" } | null {
   const want = token.toLowerCase();
   const priceUsd = num(pair.priceUsd);
   if (priceUsd == null) return null;
   const base = pair.baseToken?.address?.toLowerCase();
   const quote = pair.quoteToken?.address?.toLowerCase();
-  if (base === want) return priceUsd;
+  if (base === want) return { price: priceUsd, side: "base" };
   if (quote === want) {
     const native = num(pair.priceNative);
-    if (native == null) return null;
+    if (native == null || native <= 0) return null;
     const inverted = priceUsd / native;
-    return Number.isFinite(inverted) && inverted > 0 ? inverted : null;
+    if (!Number.isFinite(inverted) || inverted <= 0) return null;
+    return { price: inverted, side: "quote" };
   }
   return null;
 }
@@ -245,17 +247,27 @@ function quoteFromPairs(
   chainId: number,
   token: string,
   source: QuoteSource,
-): TokenQuote | null {
+): (TokenQuote & { side: "base" | "quote" }) | null {
   const slugs = slugSet(chainId);
   const onChain = pairs.filter((p) => {
     if (!p.chainId) return slugs.size === 0;
     return slugs.has(p.chainId.toLowerCase());
   });
-  const pool = onChain.length > 0 ? onChain : pairs;
+  // Never price a token off another chain — that is how TVL collapsed to cents.
+  const pool = slugs.size > 0 ? onChain : pairs;
   const scored = pool
-    .map((p) => ({ p, priceUsd: pairPriceUsd(p, token), liq: p.liquidity?.usd ?? 0 }))
-    .filter((row): row is { p: DexPair; priceUsd: number; liq: number } => row.priceUsd != null);
-  scored.sort((a, b) => b.liq - a.liq);
+    .map((p) => {
+      const hit = pairPriceUsd(p, token);
+      if (!hit) return null;
+      return { p, priceUsd: hit.price, side: hit.side, liq: p.liquidity?.usd ?? 0 };
+    })
+    .filter(
+      (row): row is { p: DexPair; priceUsd: number; side: "base" | "quote"; liq: number } => row != null,
+    );
+  scored.sort((a, b) => {
+    if (a.side !== b.side) return a.side === "base" ? -1 : 1;
+    return b.liq - a.liq;
+  });
   const best = scored[0];
   if (!best) return null;
   const quotedAt = Date.now();
@@ -270,10 +282,32 @@ function quoteFromPairs(
     source,
     quality: qualityOf(best.p.liquidity?.usd ?? null, quotedAt),
     quotedAt,
+    side: best.side,
   };
 }
 
-async function fromDexScreener(chainId: number, token: string): Promise<TokenQuote | null> {
+function stripSide(q: TokenQuote & { side?: "base" | "quote" }): TokenQuote {
+  const { side: _side, ...rest } = q;
+  void _side;
+  return rest;
+}
+
+function pickTokenQuote(
+  dex: (TokenQuote & { side?: "base" | "quote" }) | null,
+  gecko: TokenQuote | null,
+): (TokenQuote & { side?: "base" | "quote" }) | null {
+  if (dex && gecko) {
+    const ratio = dex.priceUsd / gecko.priceUsd;
+    const disagree = ratio > 2 || ratio < 0.5;
+    // Uniswap V3 pair pages on DexScreener can report a 2–3× spot vs the
+    // pool's own tick / Gecko token price. Token-level Gecko wins the tie.
+    if (disagree) return gecko;
+    return dex;
+  }
+  return dex ?? gecko;
+}
+
+async function fromDexScreener(chainId: number, token: string): Promise<(TokenQuote & { side: "base" | "quote" }) | null> {
   const slugs = DEXSCREENER_SLUGS[chainId] ?? [];
   // token-pairs first: wrapped natives (WHYPE, WBNB) are usually the quote side
   // and /tokens/v1 often returns a single thin pair.
@@ -406,10 +440,12 @@ export async function fetchTokenQuote(chainId: number, token: string): Promise<T
     if (stable) return remember(key, stable);
 
     const disk = readDisk()[key];
-    const dex = await fromDexScreener(chainId, token);
-    if (dex) return remember(key, dex);
-    const gecko = await fromGeckoTerminal(chainId, token);
-    if (gecko) return remember(key, gecko);
+    const [dex, gecko] = await Promise.all([
+      fromDexScreener(chainId, token),
+      fromGeckoTerminal(chainId, token),
+    ]);
+    const chosen = pickTokenQuote(dex, gecko);
+    if (chosen) return remember(key, stripSide(chosen));
 
     if (disk && now - disk.quotedAt < DISK_TTL_MS * 3) {
       return remember(key, { ...disk, quality: "stale" });
