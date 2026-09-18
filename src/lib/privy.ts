@@ -64,7 +64,7 @@ export const privyConfig: PrivyClientConfig = {
     walletChainType: "ethereum-only",
   },
   embeddedWallets: {
-    ethereum: { createOnLogin: "users-without-wallets" },
+    ethereum: { createOnLogin: "all-users" },
   },
   defaultChain: robinhoodChain,
   supportedChains: [...EVM_CHAINS],
