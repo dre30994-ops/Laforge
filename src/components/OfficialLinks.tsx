@@ -20,13 +20,26 @@ function XMark({ className }: { className?: string }) {
   );
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+function CopyButton({
+  value,
+  label,
+  tone = "light",
+}: {
+  value: string;
+  label: string;
+  tone?: "light" | "dark";
+}) {
   const [copied, setCopied] = useState(false);
   const { t } = useI18n();
+  const dark = tone === "dark";
   return (
     <button
       type="button"
-      className="inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05] transition-colors"
+      className={
+        dark
+          ? "inline-flex items-center justify-center w-7 h-7 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          : "inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05] transition-colors"
+      }
       aria-label={copied ? t("official.copied", { label }) : t("official.copy", { label })}
       onClick={async () => {
         try {
@@ -43,6 +56,74 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
+export function TokenCaChip({
+  tone = "light",
+}: {
+  tone?: "light" | "dark";
+}) {
+  const { t } = useI18n();
+  if (!hasTokenCa()) return null;
+  const href = tokenExplorerUrl();
+  const dark = tone === "dark";
+  const label = t("official.tokenCa", { symbol: TOKEN_SYMBOL });
+
+  return (
+    <div
+      data-testid="token-ca"
+      className={
+        dark
+          ? "inline-flex items-center gap-1.5 h-10 pl-3 pr-1 rounded-xl border border-white/20 bg-white/8"
+          : "inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-lg border border-black/10 bg-black/[0.03]"
+      }
+      title={`${label} ${TOKEN_CA}`}
+    >
+      <span
+        className={
+          dark
+            ? "text-[10px] font-semibold tracking-[0.16em] text-amber-200/85"
+            : "label-term !tracking-normal !normal-case !text-[10px]"
+        }
+      >
+        {t("official.ca")}
+      </span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={
+            dark
+              ? "font-mono text-xs text-white/90 hover:text-white"
+              : "font-mono text-xs text-hi hover:text-gold-700"
+          }
+        >
+          {shortAddress(TOKEN_CA)}
+        </a>
+      ) : (
+        <span className={dark ? "font-mono text-xs text-white/90" : "font-mono text-xs text-hi"}>
+          {shortAddress(TOKEN_CA)}
+        </span>
+      )}
+      <CopyButton value={TOKEN_CA} label={label} tone={tone} />
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t("official.explorer")}
+          className={
+            dark
+              ? "inline-flex items-center justify-center w-7 h-7 rounded-md text-white/70 hover:text-white hover:bg-white/10"
+              : "inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05]"
+          }
+        >
+          <ExternalLink size={12} />
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 export function OfficialLinks({
   compact = false,
   contractsOnly = false,
@@ -52,7 +133,7 @@ export function OfficialLinks({
 }) {
   const { t } = useI18n();
   const contracts = officialContracts();
-  const tokenHref = tokenExplorerUrl();
+  const tone = compact ? "dark" : "light";
 
   if (compact) {
     return (
@@ -66,18 +147,7 @@ export function OfficialLinks({
           <XMark className="w-3.5 h-3.5" />
           @{X_HANDLE}
         </a>
-        {hasTokenCa() && (
-          <a
-            href={tokenHref ?? undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-xs font-mono text-white/85 border border-white/20 bg-white/8 hover:bg-white/14 transition-colors"
-            title={`${TOKEN_SYMBOL} CA ${TOKEN_CA}`}
-          >
-            {TOKEN_SYMBOL} · {shortAddress(TOKEN_CA)}
-            <ExternalLink size={12} />
-          </a>
-        )}
+        <TokenCaChip tone={tone} />
       </div>
     );
   }
@@ -88,27 +158,7 @@ export function OfficialLinks({
         <>
       <p className="label-term mb-3">{t("official.official")}</p>
       <div className="flex flex-wrap items-center gap-2 mb-5">
-          <div className="inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-lg border border-black/10 bg-black/[0.03]">
-            <span className="label-term !tracking-normal !normal-case !text-[10px] mr-1">
-              {TOKEN_SYMBOL} CA
-            </span>
-            {tokenHref ? (
-              <a
-                href={tokenHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-xs text-hi hover:text-gold-700"
-                title={TOKEN_CA}
-              >
-                {shortAddress(TOKEN_CA)}
-              </a>
-            ) : (
-              <span className="font-mono text-xs text-hi" title={TOKEN_CA}>
-                {shortAddress(TOKEN_CA)}
-              </span>
-            )}
-            <CopyButton value={TOKEN_CA} label={`${TOKEN_SYMBOL} contract`} />
-          </div>
+          <TokenCaChip />
       </div>
         </>
       )}

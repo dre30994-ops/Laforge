@@ -148,11 +148,12 @@ export default function LandingPage() {
         }}
       />
 
+      <div className="absolute top-0 inset-x-0 z-20 flex flex-wrap items-center justify-center gap-2 pt-4 px-4">
+        <OfficialLinks compact />
+        <LanguageToggle tone="dark" />
+      </div>
+
       <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <OfficialLinks compact />
-          <LanguageToggle tone="dark" />
-        </div>
         <img
           src="/icon2_nobg.png"
           alt=""

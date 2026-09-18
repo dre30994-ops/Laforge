@@ -388,6 +388,8 @@ const en = {
     desk: "Marketing desk",
     copy: "Copy {label}",
     copied: "{label} copied",
+    ca: "CA",
+    tokenCa: "{symbol} CA",
   },
   music: {
     group: "Background music",
@@ -1071,6 +1073,8 @@ const zh = {
     desk: "营销台",
     copy: "复制{label}",
     copied: "已复制{label}",
+    ca: "CA",
+    tokenCa: "{symbol} 合约",
   },
   music: {
     group: "背景音乐",

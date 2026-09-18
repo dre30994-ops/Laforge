@@ -1,4 +1,4 @@
-import { isAddress } from "viem";
+import { getAddress, isAddress } from "viem";
 import { publicEnv } from "@/lib/publicEnv";
 import {
   EVM_NETWORKS,
@@ -14,11 +14,17 @@ export const X_URL = publicEnv("X_URL") || `https://x.com/${X_HANDLE}`;
 
 /**
  * Project token contract. Override with VITE_TOKEN_CA / NEXT_PUBLIC_TOKEN_CA.
- * Leave empty to hide the CA row until the token is live.
  */
 export const TOKEN_SYMBOL = publicEnv("TOKEN_SYMBOL") || "LAFORGE";
-export const TOKEN_CA = (publicEnv("TOKEN_CA") || "").trim();
+const FALLBACK_TOKEN_CA = "0xef97728563a4cbd5dd16ebf696dd662dc7247516";
+export const TOKEN_CA = checksumAddress(
+  (publicEnv("TOKEN_CA") || FALLBACK_TOKEN_CA).trim(),
+);
 export const TOKEN_CHAIN_ID = Number(publicEnv("TOKEN_CHAIN_ID") || "4663");
+
+function checksumAddress(raw: string): string {
+  return isAddress(raw) ? getAddress(raw) : "";
+}
 
 export type OfficialContract = {
   chain: string;

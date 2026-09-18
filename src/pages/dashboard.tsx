@@ -9,7 +9,7 @@ import { PoolDirectory } from "@/components/PoolDirectory";
 import { ChainSwitch } from "@/components/ChainSwitch";
 import { PoolSearch } from "@/components/PoolSearch";
 import { ImmutableStakeCard } from "@/components/ImmutableStakeCard";
-import { OfficialLinks } from "@/components/OfficialLinks";
+import { OfficialLinks, TokenCaChip } from "@/components/OfficialLinks";
 import { ConnectWithX } from "@/components/ConnectWithX";
 import { WalletButton } from "@/components/WalletButton";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -29,6 +29,9 @@ export default function Home() {
                 <p className="label-term mt-1" data-testid="protocol-tvl-caption">
                   {t("dash.caption")}
                 </p>
+                <div className="mt-2">
+                  <TokenCaChip />
+                </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap lg:pr-[7.5rem]">
                 <div className="flex items-center gap-1.5">
