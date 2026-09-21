@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Flame } from "lucide-react";
 import { sanitizeImageSrc } from "@/lib/sanitize";
 import { listPools } from "@/lib/factoryClient";
@@ -41,8 +41,6 @@ function padCells(items: TickerItem[]): TickerItem[] {
  * Live 12h slots lead; a preview strip fills the bar only when none are active.
  */
 export function TrendingCarousel() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hide = pathname === "/";
   const [items, setItems] = useState<TickerItem[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -85,7 +83,6 @@ export function TrendingCarousel() {
   }, []);
 
   useEffect(() => {
-    if (hide) return;
     let cancelled = false;
     const t = window.setTimeout(() => {
       if (!cancelled) void load();
@@ -94,15 +91,13 @@ export function TrendingCarousel() {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [hide, load]);
+  }, [load]);
 
   useEffect(() => {
-    if (hide) return;
     return onPoolsChanged(() => void load());
-  }, [hide, load]);
+  }, [load]);
 
   useEffect(() => {
-    if (hide) return;
     const id = window.setInterval(() => {
       const now = Date.now() / 1000;
       setItems((prev) => {
@@ -112,19 +107,19 @@ export function TrendingCarousel() {
       });
     }, 60_000);
     return () => window.clearInterval(id);
-  }, [hide, load]);
+  }, [load]);
 
   const source = items;
   const visible = useMemo(() => padCells(source), [source]);
   const loop = useMemo(() => [...visible, ...visible], [visible]);
 
   useEffect(() => {
-    const show = !hide && ready && items.length > 0;
+    const show = ready && items.length > 0;
     document.documentElement.style.setProperty("--trending-ticker-h", show ? TICKER_H : "0px");
     return () => document.documentElement.style.setProperty("--trending-ticker-h", "0px");
-  }, [hide, ready, items.length]);
+  }, [ready, items.length]);
 
-  if (hide || !ready || items.length === 0) return null;
+  if (!ready || items.length === 0) return null;
 
   return (
     <div

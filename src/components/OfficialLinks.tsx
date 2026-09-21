@@ -1,45 +1,21 @@
 import { useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
-import {
-  hasTokenCa,
-  officialContracts,
-  shortAddress,
-  TOKEN_CA,
-  TOKEN_SYMBOL,
-  tokenExplorerUrl,
-  X_HANDLE,
-  X_URL,
-} from "@/lib/brand";
+import { officialContracts, shortAddress } from "@/lib/brand";
 import { useI18n } from "@/components/LanguageProvider";
-
-function XMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden className={className} fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.743l7.72-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
 
 function CopyButton({
   value,
   label,
-  tone = "light",
 }: {
   value: string;
   label: string;
-  tone?: "light" | "dark";
 }) {
   const [copied, setCopied] = useState(false);
   const { t } = useI18n();
-  const dark = tone === "dark";
   return (
     <button
       type="button"
-      className={
-        dark
-          ? "inline-flex items-center justify-center w-7 h-7 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-          : "inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05] transition-colors"
-      }
+      className="inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05] transition-colors"
       aria-label={copied ? t("official.copied", { label }) : t("official.copy", { label })}
       onClick={async () => {
         try {
@@ -56,127 +32,13 @@ function CopyButton({
   );
 }
 
-export function TokenCaChip({
-  tone = "light",
-}: {
-  tone?: "light" | "dark";
-}) {
-  const { t } = useI18n();
-  if (!hasTokenCa()) return null;
-  const href = tokenExplorerUrl();
-  const dark = tone === "dark";
-  const label = t("official.tokenCa", { symbol: TOKEN_SYMBOL });
-
-  return (
-    <div
-      data-testid="token-ca"
-      className={
-        dark
-          ? "inline-flex items-center gap-1.5 h-10 pl-3 pr-1 rounded-xl border border-white/20 bg-white/8"
-          : "inline-flex items-center gap-1 h-9 pl-3 pr-1 rounded-lg border border-black/10 bg-black/[0.03]"
-      }
-      title={`${label} ${TOKEN_CA}`}
-    >
-      <span
-        className={
-          dark
-            ? "text-[10px] font-semibold tracking-[0.16em] text-amber-200/85"
-            : "label-term !tracking-normal !normal-case !text-[10px]"
-        }
-      >
-        {t("official.ca")}
-      </span>
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={
-            dark
-              ? "font-mono text-xs text-white/90 hover:text-white"
-              : "font-mono text-xs text-hi hover:text-gold-700"
-          }
-        >
-          {shortAddress(TOKEN_CA)}
-        </a>
-      ) : (
-        <span className={dark ? "font-mono text-xs text-white/90" : "font-mono text-xs text-hi"}>
-          {shortAddress(TOKEN_CA)}
-        </span>
-      )}
-      <CopyButton value={TOKEN_CA} label={label} tone={tone} />
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={t("official.explorer")}
-          className={
-            dark
-              ? "inline-flex items-center justify-center w-7 h-7 rounded-md text-white/70 hover:text-white hover:bg-white/10"
-              : "inline-flex items-center justify-center w-7 h-7 rounded-md text-mid hover:text-hi hover:bg-black/[0.05]"
-          }
-        >
-          <ExternalLink size={12} />
-        </a>
-      ) : null}
-    </div>
-  );
-}
-
-export function OfficialLinks({
-  compact = false,
-  contractsOnly = false,
-}: {
-  compact?: boolean;
-  contractsOnly?: boolean;
-}) {
+export function OfficialLinks() {
   const { t } = useI18n();
   const contracts = officialContracts();
-  const tone = compact ? "dark" : "light";
-
-  if (compact) {
-    return (
-      <div className="flex flex-wrap items-center justify-center gap-2" data-testid="official-links-compact">
-        <a
-          href={X_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold text-white/90 border border-white/20 bg-white/8 hover:bg-white/14 transition-colors"
-        >
-          <XMark className="w-3.5 h-3.5" />
-          @{X_HANDLE}
-        </a>
-        <TokenCaChip tone={tone} />
-      </div>
-    );
-  }
 
   return (
     <section className="glass p-6 animate-rise" data-testid="official-links">
-      {!contractsOnly && hasTokenCa() && (
-        <>
-      <p className="label-term mb-3">{t("official.official")}</p>
-      <div className="flex flex-wrap items-center gap-2 mb-5">
-          <TokenCaChip />
-      </div>
-        </>
-      )}
-
-      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <p className="label-term">{t("official.verified")}</p>
-        <a
-          href={X_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] font-semibold text-hi border border-black/10 hover:border-gold-400/50 hover:text-gold-700 transition-colors"
-          aria-label={`Laforge on X, ${X_HANDLE}`}
-        >
-          <XMark className="w-3 h-3" />
-          @{X_HANDLE}
-          <ExternalLink size={11} className="text-lo" />
-        </a>
-      </div>
+      <p className="label-term mb-3">{t("official.verified")}</p>
       <ul className="divide-y divide-black/[0.06]">
         {contracts.map((row) => (
           <li

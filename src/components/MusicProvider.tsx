@@ -1,4 +1,3 @@
-import { useRouter } from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -15,9 +14,7 @@ import {
  * layout), so the track keeps playing seamlessly as the user navigates between
  * pages instead of restarting on every route change.
  *
- * Volume is route-aware:
- *   • Landing page ("/")   → LANDING_VOLUME
- *   • Every other page     → half of landing, then another 35% quieter
+ * Volume is the same on every route.
  *
  * Mute is shared via context so the persistent Sound panel can toggle the
  * same audio element from any page.
@@ -43,9 +40,7 @@ export function useMusic() {
 export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [muted, setMuted] = useState(false);
-  const pathname = useRouter().state.location.pathname;
-
-  const targetVolume = pathname === "/" ? LANDING_VOLUME : OTHER_VOLUME;
+  const targetVolume = OTHER_VOLUME;
 
   // Start playback once (browsers may block autoplay until a user gesture; the
   // toggle button and the first interaction will kick it off if so).

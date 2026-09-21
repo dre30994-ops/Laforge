@@ -3,8 +3,6 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ChainProvider } from "@/components/ChainProvider";
 import { WalletContextProvider } from "@/components/WalletProvider";
-import { MusicProvider } from "@/components/MusicProvider";
-import { MusicToggle } from "@/components/MusicToggle";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import appCss from "../styles.css?url";
@@ -53,11 +51,8 @@ function RootDocument() {
           <LanguageProvider>
             <WalletContextProvider>
               <ChainProvider>
-                <MusicProvider>
-                  <TrendingCarousel />
-                  <Outlet />
-                  <MusicToggle />
-                </MusicProvider>
+                <TrendingCarousel />
+                <Outlet />
               </ChainProvider>
             </WalletContextProvider>
           </LanguageProvider>

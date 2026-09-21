@@ -92,7 +92,7 @@ const Icons = {
 };
 
 const NAV = [
-  { key: "dashboard", href: "/dashboard", match: "/dashboard" },
+  { key: "dashboard", href: "/", match: "/" },
   { key: "pools", href: "/pools", match: "/pools" },
   { key: "stake", href: "/stake", match: "/stake" },
   { key: "roadmap", href: "/roadmap", match: "/roadmap", className: "text-[#22c55e]" },
@@ -123,7 +123,7 @@ export function Sidebar() {
 
   const isActive = (match: string) => {
     if (match === "/pools") return pathname === "/pools" || pathname.startsWith("/pool/");
-    if (match === "/dashboard") return pathname === "/dashboard" || pathname === "/";
+    if (match === "/") return pathname === "/" || pathname === "/dashboard";
     return pathname === match;
   };
 
@@ -136,7 +136,7 @@ export function Sidebar() {
 
   return (
     <aside className="glass !rounded-2xl flex flex-col w-full h-full min-h-0 p-4 relative z-10 overflow-y-auto overflow-x-hidden">
-      {/* Brand — links back to the landing page */}
+      {/* Brand */}
       <Link
         to="/"
         className="flex items-center gap-3 px-1 pb-5 mb-4 border-b border-black/[0.06]
