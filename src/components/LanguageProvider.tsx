@@ -28,7 +28,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    document.documentElement.lang = locale === "zh-CN" ? "zh-CN" : "en";
+    document.documentElement.lang =
+      locale === "zh-CN" ? "zh-CN" : locale === "hi" ? "hi" : "en";
     document.documentElement.dataset.locale = locale;
     try {
       window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
@@ -42,7 +43,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggle = useCallback(() => {
-    setLocaleState((prev) => (prev === "en" ? "zh-CN" : "en"));
+    setLocaleState((prev) => (prev === "en" ? "zh-CN" : prev === "zh-CN" ? "hi" : "en"));
   }, []);
 
   const t = useCallback(

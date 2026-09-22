@@ -10,6 +10,7 @@ import { ChainSwitch } from "@/components/ChainSwitch";
 import { PoolSearch } from "@/components/PoolSearch";
 import { ImmutableStakeCard } from "@/components/ImmutableStakeCard";
 import { OfficialLinks } from "@/components/OfficialLinks";
+import { ReferralCard } from "@/components/ReferralCard";
 import { ConnectWithX } from "@/components/ConnectWithX";
 import { WalletButton } from "@/components/WalletButton";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -67,6 +68,8 @@ export default function Home() {
             <PositionStrip />
 
             <PoolDirectory />
+
+            <ReferralCard />
 
             <OfficialLinks />
 

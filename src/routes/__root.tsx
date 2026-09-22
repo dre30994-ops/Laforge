@@ -5,6 +5,7 @@ import { ChainProvider } from "@/components/ChainProvider";
 import { WalletContextProvider } from "@/components/WalletProvider";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { ReferralCapture } from "@/components/ReferralCapture";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Laforge — Staking Terminal";
@@ -23,13 +24,13 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#d4a528" },
     ],
     links: [
-      { rel: "icon", href: "/icon2_nobg.png" },
-      { rel: "apple-touch-icon", href: "/icon2_nobg.png" },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap",
       },
     ],
   }),
@@ -51,6 +52,7 @@ function RootDocument() {
           <LanguageProvider>
             <WalletContextProvider>
               <ChainProvider>
+                <ReferralCapture />
                 <TrendingCarousel />
                 <Outlet />
               </ChainProvider>
