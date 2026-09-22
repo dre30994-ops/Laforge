@@ -54,12 +54,12 @@ h1, h2, h3, h4 {
   font-family: var(--font-sans, system-ui, sans-serif);
 }
 
-html[lang="zh-CN"] body,
-html[lang="zh-CN"] h1,
-html[lang="zh-CN"] h2,
-html[lang="zh-CN"] h3,
-html[lang="zh-CN"] h4 {
-  font-family: "Noto Sans SC", var(--font-sans, system-ui, sans-serif);
+html[lang="hi"] body,
+html[lang="hi"] h1,
+html[lang="hi"] h2,
+html[lang="hi"] h3,
+html[lang="hi"] h4 {
+  font-family: "Noto Sans Devanagari", var(--font-sans, system-ui, sans-serif);
 }
 
 ::-webkit-scrollbar { width: 8px; }

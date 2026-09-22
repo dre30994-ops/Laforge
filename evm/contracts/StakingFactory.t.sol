@@ -46,7 +46,7 @@ contract StakingFactoryTest {
         feeSink = address(0xFEE);
 
         vm.deal(launcher, 10 ether);
-        factory = new StakingFactory(BRONZE, ECO, MKT, feeSink);
+        factory = new StakingFactory(BRONZE, ECO, MKT, feeSink, address(0));
         token = new MockERC20();
         token.mint(launcher, FUNDING * 10);
         token.mint(staker, FUNDING);

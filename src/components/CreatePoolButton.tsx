@@ -11,7 +11,10 @@ import {
   recordCreatedPool,
   tierFeeWei,
   resolvePoolAddress,
+  quoteLaunch,
+  formatNative,
   type CreatePoolInputs,
+  type LaunchQuote,
 } from "@/lib/factoryClient";
 import { useEvmFactory } from "@/hooks/useEvmFactory";
 import { useChain } from "@/components/ChainProvider";
@@ -22,6 +25,8 @@ import { EVM_NETWORKS, EVM_VISIBLE_NETWORKS, explorerTxUrl } from "@/lib/evmNetw
 import { sanitizeSocials } from "@/lib/sanitize";
 import { ChainGlyph } from "@/components/ChainSwitch";
 import { useI18n } from "@/components/LanguageProvider";
+import { captureReferralFromSearch, referralForLauncher } from "@/lib/referral";
+import { TOKEN_SYMBOL } from "@/lib/brand";
 
 /**
  * A green "Create" button that opens a modal collecting the inputs needed to
@@ -79,7 +84,7 @@ export function CreatePoolButton({
 }
 
 function CreatePoolModal({ onClose }: { onClose: () => void }) {
-  const { createPool } = useEvmFactory();
+  const { createPool, address } = useEvmFactory();
   const { network, family, isWalletOnSelected, selectNetwork, switching, walletConnected } = useChain();
   const { t, chainLabel, chainShort } = useI18n();
   const [token, setToken] = useState("");
@@ -130,6 +135,34 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
       return n > maxDuration ? String(maxDuration) : prev;
     });
   }, [maxDuration]);
+
+  const [quote, setQuote] = useState<LaunchQuote | null>(null);
+  const referrer = referralForLauncher(address);
+
+  useEffect(() => {
+    captureReferralFromSearch();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (family !== "evm") {
+        if (!cancelled) setQuote(null);
+        return;
+      }
+      const q = await quoteLaunch(
+        network,
+        address || "0x0000000000000000000000000000000000000001",
+        tier,
+        referrer,
+      );
+      if (!cancelled) setQuote(q);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [family, network, address, tier, referrer]);
 
   // Treasury gating for taxes. Taxes are paid to the treasury, so they can only
   // be set once a VALID treasury address is present. A blank treasury means
@@ -195,20 +228,20 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
       fundingAmount: toBaseUnits(fundingAmount || "0", dec),
       minStake: toBaseUnits(minStake || "0", dec),
       tier,
+      referrer: referrer ?? undefined,
     };
     const err = validateCreateInputs(inputs);
     if (err) return { error: err };
     return { inputs };
   }
 
-  /** The connected tier's fee, formatted in the chain's native token. */
-  function tierFeeLabel(pt: PoolTier): string {
-    const wei = tierFeeWei(network, pt);
-    const whole = wei / BigInt("1000000000000000000");
-    const frac = wei % BigInt("1000000000000000000");
-    const fracStr = frac.toString().padStart(18, "0").slice(0, 4).replace(/0+$/, "");
-    const amt = fracStr ? `${whole}.${fracStr}` : `${whole}`;
-    return `${amt} ${network.nativeSymbol}`;
+  function feeLabel(pt: PoolTier, wei?: bigint): string {
+    return formatNative(wei ?? tierFeeWei(network, pt), network.nativeSymbol);
+  }
+
+  function quotedFeeLabel(pt: PoolTier): string {
+    if (quote && pt === tier) return feeLabel(pt, quote.userPays);
+    return feeLabel(pt);
   }
 
   async function onImageChange(file: File | null) {
@@ -503,32 +536,49 @@ function CreatePoolModal({ onClose }: { onClose: () => void }) {
               active={tier === PoolTier.Bronze}
               onClick={() => setTier(PoolTier.Bronze)}
               name={t("create.bronze")}
-              fee={tierFeeLabel(PoolTier.Bronze)}
+              fee={quotedFeeLabel(PoolTier.Bronze)}
               perks={t("create.bronzePerks")}
             />
             <TierCard
               active={tier === PoolTier.Ecosystem}
               onClick={() => setTier(PoolTier.Ecosystem)}
               name={t("create.ecosystem")}
-              fee={tierFeeLabel(PoolTier.Ecosystem)}
+              fee={quotedFeeLabel(PoolTier.Ecosystem)}
               perks={t("create.ecoPerks")}
             />
             <TierCard
               active={tier === PoolTier.Marketing}
               onClick={() => setTier(PoolTier.Marketing)}
               name={t("create.marketing")}
-              fee={tierFeeLabel(PoolTier.Marketing)}
+              fee={quotedFeeLabel(PoolTier.Marketing)}
               perks={t("create.mktPerks")}
             />
           </div>
           <p className="mt-2 text-[11px] text-lo">
             {t("create.selectedFee", {
-              fee: tierFeeLabel(tier),
+              fee: quotedFeeLabel(tier),
               symbol: network.nativeSymbol,
               chain: chainShort(network.key, network.short),
-              mkt: tierFeeLabel(PoolTier.Marketing),
+              mkt: feeLabel(PoolTier.Marketing),
             })}
           </p>
+          {quote && quote.discountBps > 0 && (
+            <p className="mt-1 text-[11px] text-emerald-700 font-semibold">
+              {t("create.holderDiscount", {
+                pct: (quote.discountBps / 100).toFixed(quote.discountBps % 100 === 0 ? 0 : 1),
+                symbol: TOKEN_SYMBOL,
+                fee: quotedFeeLabel(tier),
+              })}
+            </p>
+          )}
+          {quote && quote.commissionBps > 0 && (
+            <p className="mt-1 text-[11px] text-mid">
+              {t("create.referralApplied", {
+                pct: (quote.commissionBps / 100).toFixed(quote.commissionBps % 100 === 0 ? 0 : 1),
+              })}
+            </p>
+          )}
+          <p className="mt-1 text-[11px] text-lo">{t("create.holdHint", { symbol: TOKEN_SYMBOL })}</p>
         </div>
 
         <div className="space-y-3">

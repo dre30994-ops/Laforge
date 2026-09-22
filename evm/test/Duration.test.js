@@ -65,7 +65,7 @@ describe("Factory rejects out-of-range duration", function () {
   let factory, launcher, treasury, Mock;
   beforeEach(async function () {
     [launcher, treasury] = await ethers.getSigners();
-    factory = await (await ethers.getContractFactory("StakingFactory")).deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13");
+    factory = await (await ethers.getContractFactory("StakingFactory")).deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13", ethers.ZeroAddress);
     Mock = await ethers.getContractFactory("MockERC20");
   });
 
@@ -110,7 +110,7 @@ describe("Differential: a 7-day pool matches the oracle", function () {
     token = await Mock.deploy("Pons", "PONS", 6);
 
     const Factory = await ethers.getContractFactory("StakingFactory");
-    const factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13");
+    const factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13", ethers.ZeroAddress);
     const factoryAddr = await factory.getAddress();
 
     // Mint + approve everything BEFORE createPool so createPool is the last
@@ -201,7 +201,7 @@ describe("Differential: a 30-day pool stays exact past the old 16-day capacity",
     token = await Mock.deploy("Pons", "PONS", 6);
 
     const Factory = await ethers.getContractFactory("StakingFactory");
-    const factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13");
+    const factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13", ethers.ZeroAddress);
     const factoryAddr = await factory.getAddress();
 
     // Mint + approve everything BEFORE createPool so createPool is the last

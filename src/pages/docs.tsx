@@ -132,6 +132,11 @@ export default function DocsPage() {
                 {t("docs.missedMkt", { fee: feeEth(PoolTier.Marketing) })}
               </p>
 
+              <h3 className="text-sm font-semibold text-hi mt-5 mb-1">{t("docs.holdTitle")}</h3>
+              <p className="text-sm">{t("docs.holdP")}</p>
+              <h3 className="text-sm font-semibold text-hi mt-5 mb-1">{t("docs.refTitle")}</h3>
+              <p className="text-sm">{t("docs.refP")}</p>
+
               <h3 className="text-sm font-semibold text-hi mt-5 mb-1">{t("docs.earnTitle")}</h3>
               <p className="text-sm">{t("docs.earnP", { max: maxTaxPct })}</p>
               <ul className="space-y-2 text-sm text-mid mt-1">

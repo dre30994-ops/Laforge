@@ -74,6 +74,112 @@ export const STAKING_FACTORY_ABI = [
   },
   {
     type: "function",
+    name: "createPoolReferred",
+    stateMutability: "payable",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "treasury", type: "address" },
+      { name: "durationDays", type: "uint256" },
+      { name: "stakeTaxBps", type: "uint256" },
+      { name: "unstakeTaxBps", type: "uint256" },
+      { name: "fundingAmount", type: "uint256" },
+      { name: "minStake", type: "uint256" },
+      { name: "tier", type: "uint8" },
+      { name: "referrer", type: "address" },
+    ],
+    outputs: [{ name: "pool", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "quoteLaunch",
+    stateMutability: "view",
+    inputs: [
+      { name: "launcher", type: "address" },
+      { name: "tier", type: "uint8" },
+      { name: "referrer", type: "address" },
+    ],
+    outputs: [
+      { name: "baseFee", type: "uint256" },
+      { name: "discountBps", type: "uint256" },
+      { name: "userPays", type: "uint256" },
+      { name: "referrerUsed", type: "address" },
+      { name: "commissionBps", type: "uint256" },
+      { name: "commission", type: "uint256" },
+      { name: "indirectUsed", type: "address" },
+      { name: "indirectAmount", type: "uint256" },
+      { name: "hop3Used", type: "address" },
+      { name: "hop3Amount", type: "uint256" },
+      { name: "protocolReceives", type: "uint256" },
+    ],
+  },
+  {
+    type: "function",
+    name: "lifetimeEarned",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "directsOf",
+    stateMutability: "view",
+    inputs: [{ name: "referrer", type: "address" }],
+    outputs: [{ name: "", type: "address[]" }],
+  },
+  {
+    type: "function",
+    name: "earnedFrom",
+    stateMutability: "view",
+    inputs: [
+      { name: "", type: "address" },
+      { name: "", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "referralCommissionBps",
+    stateMutability: "view",
+    inputs: [{ name: "referredCount", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "referralCount",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "owedToReferrer",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "referredBy",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "bindReferrer",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "parent", type: "address" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "claimReferral",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "poolCount",
     stateMutability: "view",
     inputs: [],
@@ -196,6 +302,22 @@ export type CreatePoolInputs = {
   fundingAmount: bigint;
   minStake: bigint;
   tier: PoolTier;
+  referrer?: string;
+};
+
+export type LaunchQuote = {
+  baseFee: bigint;
+  discountBps: number;
+  userPays: bigint;
+  referrerUsed: string;
+  commissionBps: number;
+  commission: bigint;
+  indirectUsed: string;
+  indirectAmount: bigint;
+  hop3Used: string;
+  hop3Amount: bigint;
+  protocolReceives: bigint;
+  v2: boolean;
 };
 
 function isAddress(a: string): boolean {
@@ -234,6 +356,14 @@ export function validateCreateInputs(i: CreatePoolInputs): string | null {
 
 export type CreatePoolResult = { txHash: string };
 
+export function formatNative(wei: bigint, symbol: string): string {
+  const whole = wei / BigInt("1000000000000000000");
+  const frac = wei % BigInt("1000000000000000000");
+  const fracStr = frac.toString().padStart(18, "0").slice(0, 4).replace(/0+$/, "");
+  const amt = fracStr ? `${whole}.${fracStr}` : `${whole}`;
+  return `${amt} ${symbol}`;
+}
+
 export function getPublicClient(network: EvmNetwork) {
   const rpc = network.chain.rpcUrls.default.http[0];
   return createPublicClient({
@@ -263,6 +393,201 @@ export async function resolvePoolAddress(
   })) as string;
   if (!addr || addr.toLowerCase() === ZERO_ADDR) return null;
   return addr;
+}
+
+export async function quoteLaunch(
+  network: EvmNetwork,
+  launcher: string,
+  tier: PoolTier,
+  referrer?: string | null,
+): Promise<LaunchQuote> {
+  const base = tierFeeWei(network, tier);
+  const fallback: LaunchQuote = {
+    baseFee: base,
+    discountBps: 0,
+    userPays: base,
+    referrerUsed: ZERO_ADDR,
+    commissionBps: 0,
+    commission: 0n,
+    indirectUsed: ZERO_ADDR,
+    indirectAmount: 0n,
+    hop3Used: ZERO_ADDR,
+    hop3Amount: 0n,
+    protocolReceives: base,
+    v2: false,
+  };
+  if (!network.factory || !isAddress(network.factory) || !isAddress(launcher)) return fallback;
+  const ref =
+    referrer && isAddress(referrer) && getAddress(referrer) !== getAddress(launcher)
+      ? getAddress(referrer)
+      : ZERO_ADDR;
+  try {
+    const client = getPublicClient(network);
+    const result = (await client.readContract({
+      address: getAddress(network.factory) as Hex,
+      abi: STAKING_FACTORY_ABI,
+      functionName: "quoteLaunch",
+      args: [getAddress(launcher) as Hex, tier, ref as Hex],
+    })) as readonly [
+      bigint,
+      bigint,
+      bigint,
+      string,
+      bigint,
+      bigint,
+      string,
+      bigint,
+      string,
+      bigint,
+      bigint,
+    ];
+    return {
+      baseFee: result[0],
+      discountBps: Number(result[1]),
+      userPays: result[2],
+      referrerUsed: result[3],
+      commissionBps: Number(result[4]),
+      commission: result[5],
+      indirectUsed: result[6],
+      indirectAmount: result[7],
+      hop3Used: result[8],
+      hop3Amount: result[9],
+      protocolReceives: result[10],
+      v2: true,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+export const REF_MIN_BPS = 1_000;
+export const REF_STEP_BPS = 100;
+export const REF_STEP_CAP = 20;
+
+export function directSplitBps(referredCount: bigint | number): number {
+  const n = Number(referredCount);
+  const extra = n >= REF_STEP_CAP ? REF_STEP_CAP : Math.max(0, n);
+  return REF_MIN_BPS + extra * REF_STEP_BPS;
+}
+
+export type ReferralRow = {
+  address: string;
+  earned: bigint;
+};
+
+export type ReferralDesk = {
+  count: bigint;
+  owed: bigint;
+  lifetime: bigint;
+  parent: string;
+  splitBps: number;
+  rows: ReferralRow[];
+  v2: boolean;
+};
+
+export async function readReferralDesk(
+  network: EvmNetwork,
+  account: string,
+): Promise<ReferralDesk | null> {
+  if (!network.factory || !isAddress(network.factory) || !isAddress(account)) return null;
+  const client = getPublicClient(network);
+  const factory = getAddress(network.factory) as Hex;
+  const who = getAddress(account) as Hex;
+  try {
+    const [count, owed, lifetime, parent, directs] = await Promise.all([
+      client.readContract({
+        address: factory,
+        abi: STAKING_FACTORY_ABI,
+        functionName: "referralCount",
+        args: [who],
+      }) as Promise<bigint>,
+      client.readContract({
+        address: factory,
+        abi: STAKING_FACTORY_ABI,
+        functionName: "owedToReferrer",
+        args: [who],
+      }) as Promise<bigint>,
+      client.readContract({
+        address: factory,
+        abi: STAKING_FACTORY_ABI,
+        functionName: "lifetimeEarned",
+        args: [who],
+      }) as Promise<bigint>,
+      client.readContract({
+        address: factory,
+        abi: STAKING_FACTORY_ABI,
+        functionName: "referredBy",
+        args: [who],
+      }) as Promise<string>,
+      client.readContract({
+        address: factory,
+        abi: STAKING_FACTORY_ABI,
+        functionName: "directsOf",
+        args: [who],
+      }) as Promise<readonly string[]>,
+    ]);
+    const rows: ReferralRow[] = [];
+    if (directs?.length) {
+      const earned = await Promise.all(
+        directs.map(
+          (addr) =>
+            client.readContract({
+              address: factory,
+              abi: STAKING_FACTORY_ABI,
+              functionName: "earnedFrom",
+              args: [who, getAddress(addr) as Hex],
+            }) as Promise<bigint>,
+        ),
+      );
+      directs.forEach((addr, i) => {
+        rows.push({ address: getAddress(addr), earned: earned[i] ?? 0n });
+      });
+      rows.sort((a, b) => (a.earned === b.earned ? 0 : a.earned > b.earned ? -1 : 1));
+    }
+    return {
+      count,
+      owed,
+      lifetime,
+      parent,
+      splitBps: directSplitBps(count),
+      rows,
+      v2: true,
+    };
+  } catch {
+    try {
+      const [count, owed, parent] = await Promise.all([
+        client.readContract({
+          address: factory,
+          abi: STAKING_FACTORY_ABI,
+          functionName: "referralCount",
+          args: [who],
+        }) as Promise<bigint>,
+        client.readContract({
+          address: factory,
+          abi: STAKING_FACTORY_ABI,
+          functionName: "owedToReferrer",
+          args: [who],
+        }) as Promise<bigint>,
+        client.readContract({
+          address: factory,
+          abi: STAKING_FACTORY_ABI,
+          functionName: "referredBy",
+          args: [who],
+        }) as Promise<string>,
+      ]);
+      return {
+        count,
+        owed,
+        lifetime: owed,
+        parent,
+        splitBps: directSplitBps(count),
+        rows: [],
+        v2: false,
+      };
+    } catch {
+      return null;
+    }
+  }
 }
 
 export async function createPool(
@@ -297,6 +622,12 @@ export async function createPool(
   const factory = getAddress(network.factory) as Hex;
   const tokenAddr = getAddress(i.token) as Hex;
   const publicClient = getPublicClient(network);
+  const referrer =
+    i.referrer && isAddress(i.referrer) && getAddress(i.referrer) !== getAddress(account.address)
+      ? (getAddress(i.referrer) as Hex)
+      : (ZERO_ADDR as Hex);
+  const quote = await quoteLaunch(network, account.address, i.tier, referrer);
+  const value = quote.userPays;
 
   const currentAllowance = (await publicClient.readContract({
     address: tokenAddr,
@@ -317,24 +648,44 @@ export async function createPool(
     await publicClient.waitForTransactionReceipt({ hash: approveHash });
   }
 
-  const txHash = await walletClient.writeContract({
-    account,
-    chain: network.chain,
-    address: factory,
-    abi: STAKING_FACTORY_ABI,
-    functionName: "createPool",
-    args: [
-      tokenAddr,
-      treasury as Hex,
-      BigInt(i.durationDays),
-      BigInt(i.stakeTaxBps),
-      BigInt(i.unstakeTaxBps),
-      i.fundingAmount,
-      i.minStake,
-      i.tier,
-    ],
-    value: tierFeeWei(network, i.tier),
-  });
+  const txHash = quote.v2
+    ? await walletClient.writeContract({
+        account,
+        chain: network.chain,
+        address: factory,
+        abi: STAKING_FACTORY_ABI,
+        functionName: "createPoolReferred",
+        args: [
+          tokenAddr,
+          treasury as Hex,
+          BigInt(i.durationDays),
+          BigInt(i.stakeTaxBps),
+          BigInt(i.unstakeTaxBps),
+          i.fundingAmount,
+          i.minStake,
+          i.tier,
+          referrer,
+        ],
+        value,
+      })
+    : await walletClient.writeContract({
+        account,
+        chain: network.chain,
+        address: factory,
+        abi: STAKING_FACTORY_ABI,
+        functionName: "createPool",
+        args: [
+          tokenAddr,
+          treasury as Hex,
+          BigInt(i.durationDays),
+          BigInt(i.stakeTaxBps),
+          BigInt(i.unstakeTaxBps),
+          i.fundingAmount,
+          i.minStake,
+          i.tier,
+        ],
+        value,
+      });
 
   return { txHash };
 }

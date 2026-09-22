@@ -25,7 +25,7 @@ describe("Factory: per-pool operator/treasury, launch fee, tax config", function
   beforeEach(async function () {
     [launcher, other, treasury] = await ethers.getSigners();
     const Factory = await ethers.getContractFactory("StakingFactory");
-    factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT);
+    factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
     Mock = await ethers.getContractFactory("MockERC20");
   });
 
@@ -231,7 +231,7 @@ describe("Stake tax taken from principal", function () {
     const Mock = await ethers.getContractFactory("MockERC20");
     token = await Mock.deploy("Pons", "PONS", 6);
     const Factory = await ethers.getContractFactory("StakingFactory");
-    factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT);
+    factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
 
     for (const who of [launcher, alice]) await token.mint(who.address, FUNDED_200M);
     // One-time atomic funding via the factory.
@@ -271,7 +271,7 @@ describe("Token-safety: fee-on-transfer and reentrancy are rejected", function (
   beforeEach(async function () {
     [launcher, treasury, alice] = await ethers.getSigners();
     const Factory = await ethers.getContractFactory("StakingFactory");
-    factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT);
+    factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
   });
 
   it("fee-on-transfer token: createPool funding reverts with InexactTransfer", async function () {
@@ -332,7 +332,7 @@ describe("H-1: a hostile treasury cannot block stake/unstake (pull-payment)", fu
 
   beforeEach(async function () {
     [launcher, treasury, alice] = await ethers.getSigners();
-    factory = await (await ethers.getContractFactory("StakingFactory")).deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT);
+    factory = await (await ethers.getContractFactory("StakingFactory")).deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
 
     // A token that reverts on any transfer to the treasury address — i.e. the
     // treasury is hostile / would brick a pushed tax payment.
