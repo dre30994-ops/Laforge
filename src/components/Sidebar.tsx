@@ -89,6 +89,15 @@ const Icons = {
       <circle cx="12" cy="17" r="0.6" fill="currentColor" />
     </svg>
   ),
+  referral: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" className={p.className}>
+      <circle cx="7" cy="8" r="2.5" />
+      <circle cx="17" cy="8" r="2.5" />
+      <circle cx="12" cy="16" r="2.5" />
+      <path d="M9.2 9.5L11 14.1M14.8 9.5L13 14.1" />
+    </svg>
+  ),
 };
 
 const NAV = [
@@ -99,6 +108,7 @@ const NAV = [
   { key: "yield", href: "/yield", match: "/yield" },
   { key: "calculator", href: "/calculator", match: "/calculator" },
   { key: "history", href: "/history", match: "/history" },
+  { key: "referral", href: "/referral", match: "/referral" },
   { key: "docs", href: "/docs", match: "/docs" },
   { key: "faqs", href: "/faqs", match: "/faqs" },
 ] as const;
@@ -111,6 +121,7 @@ const NAV_ICONS = {
   yield: Icons.yield,
   calculator: Icons.calculator,
   history: Icons.history,
+  referral: Icons.referral,
   docs: Icons.docs,
   faqs: Icons.faqs,
 } as const;
@@ -166,7 +177,7 @@ export function Sidebar() {
               key={item.key}
               to={item.href}
               aria-current={active ? "page" : undefined}
-              className={`nav-item ${active ? "active" : ""} ${("className" in item ? item.className : "") ?? ""}`}
+              className={`nav-item ${active ? "active" : ""} ${"className" in item ? item.className : ""}`}
             >
               <Icon className="w-[18px] h-[18px] shrink-0" />
               <span>{t(`nav.${item.key}`)}</span>
