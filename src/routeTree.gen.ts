@@ -17,6 +17,7 @@ import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as PoolsRouteImport } from './routes/pools'
 import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as ReferralRouteImport } from './routes/referral'
 import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as StakeRouteImport } from './routes/stake'
 import { Route as YieldRouteImport } from './routes/yield'
@@ -62,6 +63,11 @@ const PreviewRoute = PreviewRouteImport.update({
   path: '/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReferralRoute = ReferralRouteImport.update({
+  id: '/referral',
+  path: '/referral',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoadmapRoute = RoadmapRouteImport.update({
   id: '/roadmap',
   path: '/roadmap',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/pools': typeof PoolsRoute
   '/preview': typeof PreviewRoute
+  '/referral': typeof ReferralRoute
   '/roadmap': typeof RoadmapRoute
   '/stake': typeof StakeRoute
   '/yield': typeof YieldRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/pools': typeof PoolsRoute
   '/preview': typeof PreviewRoute
+  '/referral': typeof ReferralRoute
   '/roadmap': typeof RoadmapRoute
   '/stake': typeof StakeRoute
   '/yield': typeof YieldRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/pools': typeof PoolsRoute
   '/preview': typeof PreviewRoute
+  '/referral': typeof ReferralRoute
   '/roadmap': typeof RoadmapRoute
   '/stake': typeof StakeRoute
   '/yield': typeof YieldRoute
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/pools'
     | '/preview'
+    | '/referral'
     | '/roadmap'
     | '/stake'
     | '/yield'
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/pools'
     | '/preview'
+    | '/referral'
     | '/roadmap'
     | '/stake'
     | '/yield'
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/pools'
     | '/preview'
+    | '/referral'
     | '/roadmap'
     | '/stake'
     | '/yield'
@@ -180,6 +192,7 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   PoolsRoute: typeof PoolsRoute
   PreviewRoute: typeof PreviewRoute
+  ReferralRoute: typeof ReferralRoute
   RoadmapRoute: typeof RoadmapRoute
   StakeRoute: typeof StakeRoute
   YieldRoute: typeof YieldRoute
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/referral': {
+      id: '/referral'
+      path: '/referral'
+      fullPath: '/referral'
+      preLoaderRoute: typeof ReferralRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/roadmap': {
       id: '/roadmap'
       path: '/roadmap'
@@ -284,6 +304,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   PoolsRoute: PoolsRoute,
   PreviewRoute: PreviewRoute,
+  ReferralRoute: ReferralRoute,
   RoadmapRoute: RoadmapRoute,
   StakeRoute: StakeRoute,
   YieldRoute: YieldRoute,

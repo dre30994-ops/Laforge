@@ -16,7 +16,7 @@ export async function connect() {
 export async function deployFixture() {
   const connection = await network.create();
   const { viem } = connection;
-  const [deployer, launcher, staker, treasury] = await viem.getWalletClients();
+  const [deployer, launcher, staker, treasury, extra] = await viem.getWalletClients();
   const publicClient = await viem.getPublicClient();
 
   const factory = await viem.deployContract("StakingFactory", [
@@ -24,6 +24,7 @@ export async function deployFixture() {
     ECOSYSTEM_FEE,
     MARKETING_FEE,
     treasury.account.address,
+    "0x0000000000000000000000000000000000000000",
   ]);
 
   const token = await viem.deployContract("contracts/mocks/MockERC20.sol:MockERC20", ["Mock", "MOCK", 18]);
@@ -44,6 +45,7 @@ export async function deployFixture() {
     launcher,
     staker,
     treasury,
+    extra,
     factory,
     token,
     funding,
@@ -62,6 +64,7 @@ export async function createPool(
     value?: bigint;
     fundingAmount?: bigint;
     minStake?: bigint;
+    referrer?: Address;
   } = {},
 ) {
   const durationDays = opts.durationDays ?? 14n;
@@ -72,20 +75,38 @@ export async function createPool(
   const value = opts.value ?? ECOSYSTEM_FEE;
   const fundingAmount = opts.fundingAmount ?? fx.funding;
   const minStake = opts.minStake ?? fx.minStake;
+  const zero = "0x0000000000000000000000000000000000000000" as Address;
 
-  await fx.factory.write.createPool(
-    [
-      fx.token.address,
-      treasury,
-      durationDays,
-      stakeTaxBps,
-      unstakeTaxBps,
-      fundingAmount,
-      minStake,
-      tier,
-    ],
-    { account: fx.launcher.account, value },
-  );
+  if (opts.referrer && opts.referrer !== zero) {
+    await fx.factory.write.createPoolReferred(
+      [
+        fx.token.address,
+        treasury,
+        durationDays,
+        stakeTaxBps,
+        unstakeTaxBps,
+        fundingAmount,
+        minStake,
+        tier,
+        opts.referrer,
+      ],
+      { account: fx.launcher.account, value },
+    );
+  } else {
+    await fx.factory.write.createPool(
+      [
+        fx.token.address,
+        treasury,
+        durationDays,
+        stakeTaxBps,
+        unstakeTaxBps,
+        fundingAmount,
+        minStake,
+        tier,
+      ],
+      { account: fx.launcher.account, value },
+    );
+  }
 
   const poolAddress = (await fx.factory.read.poolOf([fx.token.address])) as Address;
   const pool = await fx.viem.getContractAt("StakingPool", poolAddress);

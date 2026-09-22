@@ -67,6 +67,7 @@ describe("StakingFactory", async () => {
           ECOSYSTEM_FEE,
           MARKETING_FEE,
           fx.deployer.account.address,
+          "0x0000000000000000000000000000000000000000",
         ]),
       /FeeRecipientIsDeployer/,
     );
