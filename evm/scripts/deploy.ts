@@ -25,15 +25,23 @@ async function main() {
     return;
   }
 
+  const membershipRaw = process.env.MEMBERSHIP_TOKEN?.trim() ?? "";
+  const membershipToken =
+    membershipRaw && isAddress(membershipRaw)
+      ? getAddress(membershipRaw)
+      : "0x0000000000000000000000000000000000000000";
+
   const factory = await viem.deployContract("StakingFactory", [
     BRONZE_FEE,
     ECOSYSTEM_FEE,
     MARKETING_FEE,
     feeRecipient,
+    membershipToken,
   ]);
 
   console.log("Deployer       ", deployer.account.address, "  ← signs the tx, does not receive fees");
   console.log("Fee recipient  ", feeRecipient, "  ← receives bronze / ecosystem / marketing launch fees");
+  console.log("Membership     ", membershipToken, "  ← holder-discount token (0x0 = none)");
   console.log("StakingFactory ", factory.address);
 }
 

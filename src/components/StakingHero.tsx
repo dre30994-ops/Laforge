@@ -31,6 +31,21 @@ export function StakingHero() {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <CreatePoolButton label={t("nav.createStake")} />
             <Link
+              to="/referral"
+              className="inline-flex items-center justify-center h-10 px-5 rounded-xl text-sm font-semibold text-white transition-transform active:scale-[0.98] hover:brightness-110"
+              style={{
+                fontFamily: "var(--font-mono, monospace)",
+                background:
+                  "linear-gradient(180deg, #f6de7a 0%, #e4b83a 48%, #c99714 100%)",
+                border: "1px solid rgba(255,252,230,0.85)",
+                boxShadow:
+                  "inset 0 1px 0 rgba(255,255,255,0.72), 0 8px 22px rgba(201,151,20,0.38)",
+                textShadow: "0 1px 1px rgba(80,50,0,0.45)",
+              }}
+            >
+              {t("dash.referrals")}
+            </Link>
+            <Link
               to="/docs"
               className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl
                          text-sm font-semibold text-hi border border-black/15
