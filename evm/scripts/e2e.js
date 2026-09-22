@@ -75,7 +75,7 @@ async function main() {
   console.log(`MockERC20 deployed: ${await token.getAddress()}`);
 
   const Factory = await ethers.getContractFactory("StakingFactory", launcher);
-  const factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT);
+  const factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
   await factory.waitForDeployment();
   console.log(`StakingFactory deployed: ${await factory.getAddress()}`);
 

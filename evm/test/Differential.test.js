@@ -155,7 +155,7 @@ describe("Differential: Solidity contract == oracle == Rust semantics", function
     token = await Mock.deploy("Pons", "PONS", 6);
 
     const Factory = await ethers.getContractFactory("StakingFactory");
-    const factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13");
+    const factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13", ethers.ZeroAddress);
     const factoryAddr = await factory.getAddress();
 
     // Mint and approve everything BEFORE createPool so that createPool is the

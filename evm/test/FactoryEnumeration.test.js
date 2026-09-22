@@ -29,7 +29,7 @@ describe("Factory enumeration surface (what the pool directory reads)", function
   beforeEach(async function () {
     [launcher, other, treasury] = await ethers.getSigners();
     const Factory = await ethers.getContractFactory("StakingFactory");
-    factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13");
+    factory = await Factory.deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13", ethers.ZeroAddress);
     Mock = await ethers.getContractFactory("MockERC20");
   });
 

@@ -28,7 +28,7 @@ describe("C-1: stakers can always exit after the pool ends", function () {
     token = await Mock.deploy("Pons", "PONS", 6);
 
     const Factory = await ethers.getContractFactory("StakingFactory");
-    factory = await Factory.connect(launcher).deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13");
+    factory = await Factory.connect(launcher).deploy(10000000000000000n, 30000000000000000n, 60000000000000000n, "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13", ethers.ZeroAddress);
 
     await token.mint(launcher.address, FUNDED);
     await token.mint(alice.address, STAKE_AMT);

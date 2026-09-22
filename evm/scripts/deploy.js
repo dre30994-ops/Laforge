@@ -84,7 +84,7 @@ async function main() {
   console.log(`  feeRecipient: ${feeRecipient}`);
 
   const Factory = await ethers.getContractFactory("StakingFactory");
-  const factory = await Factory.deploy(bronzeFee, ecosystemFee, marketingFee, feeRecipient);
+  const factory = await Factory.deploy(bronzeFee, ecosystemFee, marketingFee, feeRecipient, ethers.ZeroAddress);
   await factory.waitForDeployment();
 
   const addr = await factory.getAddress();
