@@ -17,7 +17,7 @@ async function main() {
   const Factory = await ethers.getContractFactory("StakingFactory");
   const factory = await Factory.deploy(
     10000000000000000n, 30000000000000000n, 60000000000000000n,
-    "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13"
+    "0xd196eC7D3d77bc914F0193450CFedcf483c5fF13", ethers.ZeroAddress
   );
   await factory.waitForDeployment();
 

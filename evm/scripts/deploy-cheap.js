@@ -41,7 +41,7 @@ async function main() {
 
   // Deploy the factory first.
   const Factory = await ethers.getContractFactory("StakingFactory", deployer);
-  const factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT);
+  const factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
   await factory.waitForDeployment();
   const factoryAddr = await factory.getAddress();
   console.log(`StakingFactory (cheap) deployed: ${factoryAddr}\n`);
