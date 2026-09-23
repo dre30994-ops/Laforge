@@ -8,10 +8,10 @@ export function ImmutableStakeCard() {
       <h2 className="mt-1 text-3xl md:text-4xl font-semibold tracking-tight leading-tight hero-title-gold">
         {t("immutable.title")}
       </h2>
-      <p className="mt-3 text-sm text-mid leading-relaxed">
+      <p className="mt-3 text-sm md:text-base text-mid leading-relaxed">
         {t("immutable.p1")}
       </p>
-      <p className="mt-3 text-sm text-mid leading-relaxed">
+      <p className="mt-3 text-sm md:text-base text-mid leading-relaxed">
         {t("immutable.p2")}
       </p>
     </section>
