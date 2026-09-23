@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { formatUnits } from "viem";
+import { useEffect, useMemo, useState } from "react";
+import { formatUnits, isAddress } from "viem";
+import { useConfig } from "wagmi";
+import { getWalletClient } from "wagmi/actions";
 import {
   formatCompact,
   projectRewards,
@@ -9,7 +11,7 @@ import { poolToStats } from "@/lib/poolStats";
 import { useEvmPoolActions } from "@/hooks/useEvmPoolActions";
 import { getMockPosition, isMockPoolAddress, MOCK_DEMO_USER } from "@/lib/mockPools";
 import { explorerTxUrl, type EvmNetwork } from "@/lib/evmNetworks";
-import type { PoolSummary } from "@/lib/factoryClient";
+import { poolStatus, claimHolderReward, readHolderRewardTokens, readPendingHolderReward, syncHolderReward, ERC20_METADATA_ABI, getPublicClient, type PoolSummary } from "@/lib/factoryClient";
 import { useLiveClaimable } from "@/hooks/useLiveClaimable";
 import { useConnectedAccount } from "@/hooks/useConnectedAccount";
 import { useI18n } from "@/components/LanguageProvider";
@@ -28,9 +30,49 @@ export function PoolActionStrip({
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("stake");
   const [amount, setAmount] = useState("");
+  const [holderRows, setHolderRows] = useState<{ token: string; symbol: string; decimals: number; pending: bigint }[]>([]);
+  const [payoutDraft, setPayoutDraft] = useState("");
+  const [holderBusy, setHolderBusy] = useState(false);
+  const [holderMsg, setHolderMsg] = useState("");
+  const config = useConfig();
   const { address } = useConnectedAccount();
   const actions = useEvmPoolActions(pool, network);
   const mock = isMockPoolAddress(pool.pool);
+
+  useEffect(() => {
+    if (mock) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const client = getPublicClient(network);
+        const tokens = await readHolderRewardTokens(pool.pool, network);
+        const next = [];
+        for (const token of tokens) {
+          const [symbol, decimals, pending] = await Promise.all([
+            client.readContract({
+              address: token as `0x${string}`,
+              abi: ERC20_METADATA_ABI,
+              functionName: "symbol",
+            }).catch(() => "???") as Promise<string>,
+            client.readContract({
+              address: token as `0x${string}`,
+              abi: ERC20_METADATA_ABI,
+              functionName: "decimals",
+            }).catch(() => 18) as Promise<number>,
+            address ? readPendingHolderReward(pool.pool, address, token, network) : Promise.resolve(0n),
+          ]);
+          next.push({ token, symbol, decimals: Number(decimals) || 18, pending });
+        }
+        if (!cancel) setHolderRows(next);
+      } catch {
+        if (!cancel) setHolderRows([]);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [mock, pool.pool, network, address, actions.status, holderBusy]);
+
   const { display: liveClaimable } = useLiveClaimable(mock ? undefined : pool.pool, pool.chainId);
 
   const pos = mock
@@ -89,14 +131,55 @@ export function PoolActionStrip({
     onUpdated?.();
   }
 
-  const actionDisabled = busy || (tab !== "claim" && !amount.trim());
+  async function claimHolder(token: string) {
+    setHolderBusy(true);
+    setHolderMsg("");
+    try {
+      const wallet = await getWalletClient(config, { chainId: network.chain.id });
+      if (!wallet) throw new Error(t("pool.connectWalletTaxes"));
+      await claimHolderReward(wallet, pool.pool, network, token);
+      setHolderMsg(t("holder.claimed"));
+      onUpdated?.();
+    } catch (e: unknown) {
+      setHolderMsg(e instanceof Error ? e.message : t("holder.failed"));
+    } finally {
+      setHolderBusy(false);
+    }
+  }
+
+  async function trackPayout() {
+    const token = payoutDraft.trim();
+    if (!isAddress(token)) {
+      setHolderMsg(t("holder.bad"));
+      return;
+    }
+    setHolderBusy(true);
+    setHolderMsg("");
+    try {
+      const wallet = await getWalletClient(config, { chainId: network.chain.id });
+      if (!wallet) throw new Error(t("pool.connectWalletTaxes"));
+      await syncHolderReward(wallet, pool.pool, network, token);
+      setPayoutDraft("");
+      setHolderMsg(t("holder.synced"));
+    } catch (e: unknown) {
+      setHolderMsg(e instanceof Error ? e.message : t("holder.failed"));
+    } finally {
+      setHolderBusy(false);
+    }
+  }
+
+  const lifecycle = poolStatus(pool);
+  const ended = lifecycle === "ended";
+  const actionDisabled =
+    busy || (tab === "stake" && ended) || (tab !== "claim" && !amount.trim());
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch animate-rise" data-testid="pool-action-strip">
+    <div className="space-y-6 animate-rise">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch" data-testid="pool-action-strip">
       <div className="lg:col-span-2 glass p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-hi tracking-tight">{t("position.title")}</h2>
-          <span className="label-term">{mock ? t("position.demo") : t("position.live")}</span>
+          <span className="label-term">{mock ? t("position.demo") : t(`status.${lifecycle}`)}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {metrics.map((m) => (
@@ -148,7 +231,7 @@ export function PoolActionStrip({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0"
-              disabled={busy}
+              disabled={busy || (tab === "stake" && ended)}
               className="input-term mt-1.5 disabled:opacity-50"
             />
           </label>
@@ -164,6 +247,11 @@ export function PoolActionStrip({
         {tab === "unstake" && (
           <p className="label-term !text-[9px] !tracking-normal !normal-case text-amber-neon mb-3">
             {t("position.unstakeWarn")}
+          </p>
+        )}
+        {ended && tab === "stake" && (
+          <p className="label-term !text-[9px] !tracking-normal !normal-case text-lo mb-3">
+            {t("position.endedHint")}
           </p>
         )}
 
@@ -204,5 +292,77 @@ export function PoolActionStrip({
         )}
       </div>
     </div>
+
+    <section className="glass !rounded-2xl p-5" data-testid="holder-rewards">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-hi">{t("holder.title")}</h2>
+          <p className="text-xs text-mid mt-1 leading-relaxed max-w-xl">{t("holder.body")}</p>
+        </div>
+      </div>
+
+      {holderRows.length === 0 ? (
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="rounded-xl border border-black/[0.06] bg-black/[0.02] px-4 py-3 min-w-[10rem]">
+            <div className="label-term">{t("holder.yourShare")}</div>
+            <div className="mono text-lg font-bold text-hi mt-1">0</div>
+            <div className="text-[11px] text-lo mt-1">{t("holder.waiting")}</div>
+          </div>
+          <button type="button" className="btn-neon" disabled>
+            {t("holder.claim")}
+          </button>
+        </div>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {holderRows.map((row) => (
+            <li key={row.token} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-hi">{row.symbol}</div>
+                <div className="text-[11px] text-mid">
+                  {t("holder.yourShare")} {formatUnits(row.pending, row.decimals)}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-neon"
+                disabled={holderBusy || row.pending === 0n}
+                onClick={() => void claimHolder(row.token)}
+              >
+                {holderBusy
+                  ? t("position.confirming")
+                  : row.pending === 0n
+                    ? t("holder.claim")
+                    : t("position.holderClaim", {
+                        amount: formatUnits(row.pending, row.decimals),
+                        symbol: row.symbol,
+                      })}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!mock && (
+        <form
+          className="mt-4 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void trackPayout();
+          }}
+        >
+          <input
+            value={payoutDraft}
+            onChange={(e) => setPayoutDraft(e.target.value)}
+            placeholder={t("position.holderPlaceholder")}
+            className="input-term flex-1 min-w-0"
+          />
+          <button type="submit" disabled={holderBusy} className="h-10 px-3 rounded-xl text-xs font-semibold border border-black/15">
+            {t("position.holderTrack")}
+          </button>
+        </form>
+      )}
+      {holderMsg ? <p className="text-[11px] text-mid mt-2">{holderMsg}</p> : null}
+    </section>
+  </div>
   );
 }

@@ -21,11 +21,23 @@ import {
   TICK_SECONDS,
 } from "@/lib/economics";
 
+const HOLD_TIERS = [
+  { tokens: "10,000", off: "5%" },
+  { tokens: "100,000", off: "10%" },
+  { tokens: "1,000,000", off: "20%" },
+  { tokens: "10,000,000", off: "30%" },
+] as const;
+
+const REF_HOPS = [
+  { key: "h1", cut: "10–30%" },
+  { key: "h2", cut: "5% of hop 1" },
+  { key: "h3", cut: "2% of hop 2" },
+] as const;
+
 /**
  * Consumer-friendly documentation for The Forge staking program.
- * Plain-language explanations of how staking, rewards, multipliers, and the
- * APY calculator work — sourced from the shared economics constants so the
- * numbers here always match the live app.
+ * Plain-language explanations of how staking, rewards, holder discounts,
+ * and referrals work — numbers stay in lockstep with the live app.
  */
 export default function DocsPage() {
   const { t } = useI18n();
@@ -49,7 +61,7 @@ export default function DocsPage() {
         <main className="flex-1 min-w-0 px-4 md:px-6 lg:px-8 py-6">
           <div className="max-w-[880px] mx-auto space-y-6">
             <header className="animate-rise">
-              <Link to="/dashboard" className="label-term hover:text-gold-neon transition-colors">
+              <Link to="/" className="label-term hover:text-gold-neon transition-colors">
                 {t("docs.back")}
               </Link>
               <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-hi mt-3">
@@ -74,6 +86,9 @@ export default function DocsPage() {
                 </li>
                 <li className="flex gap-2.5">
                   <Dot /> {t("docs.t4")}
+                </li>
+                <li className="flex gap-2.5">
+                  <Dot /> {t("docs.t6")}
                 </li>
                 <li className="flex gap-2.5">
                   <Dot /> {t("docs.t5", { n: MAX_DURATION_DAYS })}
@@ -153,6 +168,58 @@ export default function DocsPage() {
               <Callout tone="warn">{t("docs.immutable")}</Callout>
             </Doc>
 
+            <Doc title={t("docs.holdTitle")}>
+              <p>{t("docs.holdP")}</p>
+              <div className="not-prose overflow-hidden rounded-xl border border-black/[0.06] my-3">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-black/[0.03] text-left">
+                      <th className="px-4 py-2.5 font-semibold text-hi">{t("docs.holdAmt")}</th>
+                      <th className="px-4 py-2.5 font-semibold text-hi">{t("docs.holdOff")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {HOLD_TIERS.map((row) => (
+                      <tr key={row.tokens} className="border-t border-black/[0.06]">
+                        <td className="px-4 py-2.5 font-mono text-mid">{row.tokens}</td>
+                        <td className="px-4 py-2.5 font-mono font-semibold text-gold-700">{row.off}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="info">{t("docs.holdNote")}</Callout>
+            </Doc>
+
+            <Doc title={t("docs.refTitle")}>
+              <p>{t("docs.refP")}</p>
+              <div className="space-y-3 not-prose my-3">
+                {REF_HOPS.map((hop, i) => (
+                  <article
+                    key={hop.key}
+                    className="rounded-xl border border-black/[0.06] bg-black/[0.02] p-4 flex items-start gap-3"
+                  >
+                    <span className="shrink-0 w-8 h-8 rounded-lg grid place-items-center text-sm font-semibold text-gold-800 bg-gold-200">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                        <h3 className="text-sm font-semibold text-hi">{t(`refPage.${hop.key}t`)}</h3>
+                        <p className="font-mono text-xs text-gold-700">{hop.cut}</p>
+                      </div>
+                      <p className="text-sm text-mid mt-1 leading-relaxed">{t(`refPage.${hop.key}p`)}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <p className="text-xs text-lo">{t("refPage.cap")}</p>
+              <p className="mt-3">
+                <Link to="/referral" className="text-gold-neon hover:underline font-semibold">
+                  {t("docs.refCta")}
+                </Link>
+              </p>
+            </Doc>
+
             <Doc title={t("docs.rewardsTitle")}>
               <p>{t("docs.rewardsP", { n: tickMinutes, ticks: TICKS_PER_DAY })}</p>
               <StatRow
@@ -200,49 +267,6 @@ export default function DocsPage() {
               <p>{t("docs.behaveP", { n: MAX_DURATION_DAYS })}</p>
               <Callout tone="info">{t("docs.onePool")}</Callout>
             </Doc>
-
-            <Doc title={t("docs.readTitle")}>
-              <p>{t("docs.readP")}</p>
-              <dl className="space-y-3 not-prose">
-                <Field term={t("docs.fStake")} def={t("docs.fStakeD")} />
-                <Field
-                  term={t("docs.fTenure")}
-                  def={t("docs.fTenureD", { max: TENURE_MAX_MULT.toFixed(1), days: TENURE_MAX_DAYS })}
-                />
-                <Field term={t("docs.fHorizon")} def={t("docs.fHorizonD")} />
-              </dl>
-              <p className="mt-4">{t("docs.then")}</p>
-              <dl className="space-y-3 not-prose">
-                <Field term={t("docs.fApy")} def={t("docs.fApyD")} />
-                <Field term={t("docs.fApr")} def={t("docs.fAprD")} />
-                <Field term={t("docs.fRewards")} def={t("docs.fRewardsD")} />
-                <Field term={t("docs.fDaily")} def={t("docs.fDailyD")} />
-                <Field term={t("docs.fShare")} def={t("docs.fShareD")} />
-              </dl>
-              <Callout tone="info">{t("docs.projections")}</Callout>
-            </Doc>
-
-            <Doc title={t("docs.moveTitle")}>
-              <StatRow
-                items={[
-                  { k: t("docs.longer"), v: t("docs.longerV") },
-                  { k: t("docs.more"), v: t("docs.moreV") },
-                  { k: t("docs.ramp"), v: t("docs.rampV") },
-                ]}
-              />
-              <ul className="space-y-2 text-sm text-mid mt-2">
-                <li className="flex gap-2.5"><Dot /> <span>{t("docs.higher")}</span></li>
-                <li className="flex gap-2.5"><Dot /> <span>{t("docs.lower")}</span></li>
-              </ul>
-            </Doc>
-
-            <section className="glass p-6 text-center animate-rise">
-              <h2 className="text-lg font-semibold text-hi tracking-tight">{t("docs.ready")}</h2>
-              <p className="text-mid text-sm mt-1.5">{t("docs.readyP")}</p>
-              <Link to="/calculator" className="inline-block mt-4">
-                <span className="btn-neon !inline-block !w-auto !px-6">{t("docs.openCalc")}</span>
-              </Link>
-            </section>
 
             <footer className="pt-2 pb-4 text-center">
               <p className="label-term !tracking-normal !normal-case text-lo">
@@ -322,15 +346,6 @@ function TierCard({
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function Field({ term, def }: { term: string; def: string }) {
-  return (
-    <div className="rounded-lg border border-black/[0.06] bg-black/[0.02] p-3">
-      <dt className="text-sm font-semibold text-hi">{term}</dt>
-      <dd className="text-sm text-mid mt-1 leading-relaxed">{def}</dd>
     </div>
   );
 }

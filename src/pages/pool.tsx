@@ -173,7 +173,15 @@ export default function PoolDashboardPage() {
                         <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-black/[0.06] text-lo">
                           {tierLabel}
                         </span>
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-500/15 text-green-300">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            status === "live"
+                              ? "bg-green-500/15 text-green-300"
+                              : status === "paused"
+                                ? "bg-amber-500/15 text-amber-300"
+                                : "bg-black/[0.08] text-lo"
+                          }`}
+                        >
                           {t(`status.${status}`)}
                         </span>
                         {pool.demo && (

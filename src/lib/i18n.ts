@@ -106,6 +106,10 @@ const en = {
     live: "Mainnet feed · live",
     referrals: "Referrals",
     footer: "Tenure resets on unstake · rate can rise if the operator tops up",
+    holderKicker: "Holder rewards",
+    holderTitle: "The pool handles them. You just claim.",
+    holderBody:
+      "Holder rewards are collected and split by the pool. Stakers only have to claim. That covers the major launchpads — pump.fun, Pons, and StonkFun.",
   },
   connect: {
     withX: "Connect with X",
@@ -294,8 +298,7 @@ const en = {
     explorer: "Explorer ↗",
     sample: "Sample",
     emptyTitle: "No live pools yet",
-    emptyBody:
-      "Be the first to launch on Robinhood or Ethereum. Until then you can walk through sample dashboards — they are labeled and not a stake.",
+    emptyBody: "Be the first to launch. Sample dashboards are labeled and are not a stake.",
     previewCta: "Preview a pool dashboard",
     loadFail: "Could not load pools.",
   },
@@ -303,6 +306,7 @@ const en = {
     live: "Live",
     paused: "Paused",
     pending: "Pending",
+    ended: "Ended",
     verified: "Verified",
     trending: "Trending",
     demo: "Demo",
@@ -313,14 +317,14 @@ const en = {
   hero: {
     kicker: "Stake · earn · compound",
     title: "Put your tokens to work.",
-    body: "Earn continuous, auto-accruing yield with a tenure bonus that grows the longer you stake — up to 2.0×. No lockups you can't exit, transparent emissions, and rewards that compound in real time.",
+    body: "Stake and earn while you hold — up to 2× for staying in. Exit anytime. Rewards land as they accrue.",
     how: "How it works",
   },
   immutable: {
-    kicker: "How a pool is born",
+    kicker: "At launch",
     title: "Locked in at creation.",
-    p1: "When a stake is created, the token, duration, taxes, and treasury are written on-chain and do not change. That immutability is the point — stakers can read the terms once and trust them for the life of the pool, and the people who join it form a community around a contract that cannot quietly rewrite the deal.",
-    p2: "Creators earn from the stake and unstake taxes they choose. Every taxed action pays the treasury they set at launch. No treasury means no tax, and no income from the pool.",
+    p1: "Token, duration, taxes, and treasury are written on-chain when the pool is created. They don’t change.",
+    p2: "Creators earn the stake and unstake taxes they set. No treasury means no tax, and no income from the pool.",
   },
   vault: {
     locked: "Total tokens locked",
@@ -367,6 +371,17 @@ const en = {
     named: "{symbol} Pool",
     notFoundChain: "Pool not found on this chain.",
   },
+  holder: {
+    title: "Holder rewards",
+    body: "Launchpads pay the address holding the token. While you are staked, that address is this pool. Track the payout token once. Claim pays your share of whatever has landed.",
+    claim: "Claim holder rewards",
+    waiting: "Nothing waiting yet.",
+    yourShare: "Your share",
+    synced: "Payout token synced.",
+    claimed: "Payout claimed.",
+    failed: "Could not sync or claim that payout.",
+    bad: "Enter a valid token address.",
+  },
   position: {
     title: "Your Position",
     staked: "Staked",
@@ -381,18 +396,21 @@ const en = {
     unstake: "Unstake",
     claim: "Claim",
     claimRewards: "Claim rewards",
+    holderClaim: "Claim {amount} {symbol}",
+    holderTrack: "Track payout",
+    holderPlaceholder: "Payout token 0x…",
+    holderEmpty: "No launchpad payout is waiting. Farm emissions use the button above.",
     confirming: "Confirming…",
     demoAction: "Demo {action}",
-    unstakeWarn: "Unstaking resets tenure to 1.00x. Tax is sent to this pool’s treasury.",
+    unstakeWarn: "Unstake resets tenure to 1.00x. Tax goes to the pool treasury.",
+    endedHint: "This pool has ended. Unstake and claim still work.",
     live: "Live",
     demo: "Demo",
     max: "Staked: {n} · MAX",
     preparing: "Preparing…",
     confirmWallet: "Confirm in wallet…",
-    evmHint:
-      "Stake, unstake, and claim from a pool dashboard. Taxes go to that pool’s treasury.",
-    demoHint:
-      "Demo pool — stake, unstake, and claim update this vault locally so you can preview the dashboard.",
+    evmHint: "Stake, unstake, and claim from a pool page. Taxes go to that pool’s treasury.",
+    demoHint: "Demo only — actions stay on this page.",
     sent: "Sent.",
     maxBal: "Bal: {n} · MAX",
   },
@@ -408,9 +426,9 @@ const en = {
   },
   calc: {
     title: "APY Calculator",
-    subtitle: "Yield projector",
+    subtitle: "Estimate yield",
     stake: "Stake amount",
-    tenure: "Tenure · hold time",
+    tenure: "Hold time",
     fresh: "Fresh · 1.00x",
     held: "{n}d held",
     max: "Max {n}d · 2.00x",
@@ -424,15 +442,14 @@ const en = {
     daily: "Daily yield",
     perDay: "tokens/day",
     share: "Share of emissions",
-    disclaimer:
-      "Assumes current emission rate and pool composition hold. Actual yield varies with TVL, the emission ramp, and operator top-ups.",
+    disclaimer: "A snapshot. Real yield moves with the pool.",
   },
   calcPage: {
     back: "← Back to dashboard",
     title: "APY Calculator",
     intro:
       "Project your yield before you stake. Enter an amount, set how long you’ve held, and pick a horizon to see estimated APY, APR, and rewards.",
-    how: "How to use it — a quick example",
+    how: "Project a stake",
     step1:
       "Enter your stake. Say you plan to stake 100,000 tokens — type that into Stake amount.",
     step2: "Set how long you have already held (or plan to hold) with the tenure slider.",
@@ -530,9 +547,8 @@ const en = {
     browse: "Browse pools",
   },
   yieldPage: {
-    title: "Reward Growth",
-    intro:
-      "How your rewards accumulate over the {n}-day program, based on your stake and tenure multiplier.",
+    title: "Yield",
+    intro: "What you've earned, and what a stake could make over {n} days.",
     syncing: "Syncing…",
     live: "Live",
     illustrative:
@@ -666,13 +682,14 @@ const en = {
     back: "← Back to dashboard",
     title: "How The Forge works",
     subtitle:
-      "A plain-English guide to staking on The Forge — how you earn, why holding longer pays more, and how to read the APY calculator. No jargon required.",
+      "A plain-English guide to staking on The Forge — how you earn, why holding longer pays more, how holding the Laforge token cuts the launch fee, and how referrals pay. No jargon required.",
     tldr: "The 30-second version",
     t1: "You lock (“stake”) your tokens into a shared pool and earn rewards every {n} minutes.",
     t2: "The longer you keep them staked, the bigger your rewards grow — up to {n}×.",
     t3: "Rewards are split among everyone in the pool by their share, so your cut depends on how much you stake and how long you’ve held.",
-    t4: "The APY calculator lets you test “what if I staked X for Y days?” before committing.",
+    t4: "Hold the Laforge token (launching on pump.fun) and the launch fee drops — 5% at 10k, up to 30% at 10M.",
     t5: "Anyone can spin up their own staking contract — you pick the token, the tier, and the stake length (up to {n} days), and LaForge deploys a dedicated pool for it.",
+    t6: "Share a referral link and earn 10–30% of the launch fee when someone creates a pool through you. Two more hops, then it stops.",
     previewTitle: "Preview a pool dashboard",
     previewP:
       "Live listings only show pools that have actually launched. If you want to see how Bronze, Ecosystem, and Marketing dashboards read — banners, socials, vault stats, and the add-on — open the sample walkthrough. Those screens are labeled sample data and are not a stake.",
@@ -711,10 +728,15 @@ const en = {
       "Missed Marketing at launch? Anyone can pay the Marketing fee ({fee} ETH on Robinhood / Ethereum) anytime on the pool page. That is a community boost, not a stake. It unlocks banner and socials for the operator and a 12-hour trending slot. Paying again extends trending. The verified badge stays with the operator. The original on-chain launch tier does not change.",
     holdTitle: "Holder discounts",
     holdP:
-      "If you hold the project token, the launch fee is cheaper at create time. 10,000 tokens → 5% off, 100,000 → 10%, 1,000,000 → 20%, 10,000,000 → 30%. The factory reads your wallet balance in the same transaction.",
-    refTitle: "Referrals",
+      "Hold the Laforge token — launching on pump.fun — in the same wallet you create a pool from. The factory reads that balance in the create transaction and cuts the launch fee. No ticker yet; the CA lands here when it mints.",
+    holdAmt: "Tokens held",
+    holdOff: "Launch-fee discount",
+    holdNote:
+      "This only discounts the ETH/native fee to create a pool. Staking into a pool has no protocol fee — optional stake/unstake tax is set by the creator and is not discounted.",
+    refTitle: "Earn through referrals",
     refP:
-      "Share ?ref=your-wallet. Direct: 10% of the fee they pay, +1% per extra launch through you, cap 30%. Hop 2: your upline earns 5% of that commission. Hop 3: 2% of hop 2. Hard cap at three. Overrides come from the protocol remainder — nobody’s cut is reduced. Claim from the dashboard.",
+      "Share your link (?ref=your-wallet). When someone creates a pool through it, you earn a slice of the launch fee they actually paid — after any holder discount. Direct starts at 10%, +1% per extra launch, cap 30%. Your upline (hop 2) gets 5% of your commission. Hop 3 gets 2% of hop 2. Then it stops. Overrides come from the protocol remainder — nobody’s cut is reduced. Claim from the referral desk.",
+    refCta: "Open the referral desk →",
     earnTitle: "How Stake Creators earn",
     earnP:
       "Creators earn from stake and unstake taxes they set at launch. Each side can be configured up to {max}%, and the collected tax is routed to the treasury address you choose:",
@@ -870,6 +892,10 @@ const zh = {
     live: "主网数据 · 实时",
     referrals: "推荐",
     footer: "解除质押会重置持有加成 · 运营方可追加奖励从而提升速率",
+    holderKicker: "持仓奖励",
+    holderTitle: "矿池负责发放。你只需领取。",
+    holderBody:
+      "持仓奖励由矿池收集并按质押份额拆分。质押者只需领取。覆盖主流发射台：pump.fun、Pons、StonkFun。",
   },
   connect: {
     withX: "使用 X 连接",
@@ -1051,7 +1077,7 @@ const zh = {
     explorer: "浏览器 ↗",
     sample: "示例",
     emptyTitle: "还没有线上矿池",
-    emptyBody: "成为第一个在罗宾汉链或以太坊上线的人。在此之前可以浏览示例仪表盘——已标注为示例，并非真实质押。",
+    emptyBody: "成为第一个上线的人。示例仪表盘已标注，不是真实质押。",
     previewCta: "预览矿池仪表盘",
     loadFail: "无法加载矿池。",
   },
@@ -1059,6 +1085,7 @@ const zh = {
     live: "进行中",
     paused: "已暂停",
     pending: "待开始",
+    ended: "已结束",
     verified: "已验证",
     trending: "热门",
     demo: "示例",
@@ -1069,14 +1096,14 @@ const zh = {
   hero: {
     kicker: "质押 · 收益 · 复利",
     title: "让代币开始工作。",
-    body: "持续自动累计收益，持有越久加成越高——最高 2.0 倍。随时可退出，排放透明，奖励实时复利。",
+    body: "质押即赚，持有越久越高——最高 2 倍。随时可退出。奖励到账即计。",
     how: "运作方式",
   },
   immutable: {
-    kicker: "矿池如何诞生",
+    kicker: "上线时",
     title: "创建时即锁定。",
-    p1: "创建质押时，代币、时长、税率和国库都会写入链上且不可更改。这正是意义所在——质押者只需阅读一次条款，就能在整个周期内信任它们；加入的人围绕一份无法悄悄改写规则的合约形成社区。",
-    p2: "创建者从自行设定的质押税与解押税中获益。每次收税都会打到上线时设置的国库。没有国库就没有税，也就没有来自矿池的收入。",
+    p1: "代币、时长、税率和国库在创建时写入链上。之后不会改。",
+    p2: "创建者赚取自己设定的质押税与解押税。没有国库就没有税，也没有来自矿池的收入。",
   },
   vault: {
     locked: "锁定代币总量",
@@ -1139,6 +1166,7 @@ const zh = {
     confirming: "确认中…",
     demoAction: "示例{action}",
     unstakeWarn: "解押会将持有倍数重置为 1.00 倍。税费会发送到本池国库。",
+    endedHint: "矿池已结束。仍可解押和领取。",
     live: "实时",
     demo: "示例",
     max: "已质押：{n} · 全部",
@@ -1161,7 +1189,7 @@ const zh = {
   },
   calc: {
     title: "年化计算器",
-    subtitle: "收益推演",
+    subtitle: "估算收益",
     stake: "质押数量",
     tenure: "持有时长",
     fresh: "刚进入 · 1.00 倍",
@@ -1177,13 +1205,13 @@ const zh = {
     daily: "日收益",
     perDay: "代币/天",
     share: "排放份额",
-    disclaimer: "假设当前排放速率和矿池构成不变。实际收益会随锁仓量、排放爬坡和运营方追加而变化。",
+    disclaimer: "当前快照。真实收益会随矿池变化。",
   },
   calcPage: {
     back: "← 返回控制台",
     title: "年化计算器",
     intro: "质押前先推演收益。输入数量、设定持有时长并选择区间，即可看到预估 APY、APR 和奖励。",
-    how: "怎么用 — 快速示例",
+    how: "推演一笔质押",
     step1: "输入质押数量。比如你计划质押 100,000 枚代币，就填进「质押数量」。",
     step2: "用持有时长滑块设定你已经持有（或计划持有）的时间。",
     step3: "选择推演区间——一天、一周，或整个矿池周期。",
@@ -1276,8 +1304,8 @@ const zh = {
     browse: "浏览矿池",
   },
   yieldPage: {
-    title: "收益增长",
-    intro: "基于你的质押和持有倍数，奖励如何在 {n} 天周期内累计。",
+    title: "收益",
+    intro: "你已经赚到的，以及一笔质押在 {n} 天内可能赚到的。",
     syncing: "同步中…",
     live: "实时",
     illustrative: "当前为示意推演。连接钱包后可查看你真实仓位的收益增长。",
@@ -1402,13 +1430,14 @@ const zh = {
   docs: {
     back: "← 返回控制台",
     title: "熔炉如何运作",
-    subtitle: "用白话讲解熔炉上的质押——如何赚钱、为何持有越久收益越高，以及如何阅读年化计算器。",
+    subtitle: "用白话讲解熔炉上的质押——如何赚钱、为何持有越久收益越高、持有 Laforge 代币如何减免启动费，以及推荐如何分成。",
     tldr: "30 秒版",
     t1: "你把代币锁进（「质押」）共享矿池，每隔 {n} 分钟获得一次奖励。",
     t2: "持有越久，奖励越大——最高 {n} 倍。",
     t3: "奖励按份额分给池内所有人，所以你的分成取决于质押多少、持有多久。",
-    t4: "年化计算器可以在动手前试算「如果我质押 X、持有 Y 天会怎样？」",
+    t4: "持有 Laforge 代币（将在 pump.fun 上线）可减免启动费——1 万枚减 5%，最高 1000 万枚减 30%。",
     t5: "任何人都可以创建自己的质押合约——选择代币、档位和质押时长（最长 {n} 天），LaForge 会为它部署专属矿池。",
+    t6: "分享推荐链接，有人通过你创建矿池时，你拿走启动费的 10–30%。再两层，然后停止。",
     previewTitle: "预览矿池仪表盘",
     previewP:
       "线上列表只展示真正已上线的矿池。若想看青铜、生态和营销仪表盘长什么样——横幅、社交、金库数据和加持——请打开示例导览。那些页面已标注为示例数据，不是真实质押。",
@@ -1446,10 +1475,15 @@ const zh = {
       "上线时错过营销档？任何人都可以随时在矿池页支付营销费（罗宾汉/以太坊为 {fee} ETH）。这是社区加持，不是质押。它为运营方解锁横幅和社交，并获得 12 小时热门位。再次支付可延长热门。已验证徽章仍属于运营方。链上原始启动档位不会改变。",
     holdTitle: "持仓折扣",
     holdP:
-      "持有项目代币时，创建矿池的启动费更便宜。1 万枚 → 减 5%，10 万 → 10%，100 万 → 20%，1000 万 → 30%。工厂在同一笔交易里读取钱包余额。",
-    refTitle: "推荐",
+      "在创建矿池的同一钱包里持有 Laforge 代币（将在 pump.fun 上线）。工厂在创建交易里读取余额并减免启动费。尚无合约地址；铸造后会写在这里。",
+    holdAmt: "持有数量",
+    holdOff: "启动费折扣",
+    holdNote:
+      "只减免创建矿池时的原生币启动费。向矿池质押没有协议费——创建者设定的质押/解押税不会因此打折。",
+    refTitle: "通过推荐赚钱",
     refP:
-      "分享 ?ref=你的钱包。直推：对方实付启动费的 10%，每多一笔 +1%，最高 30%。第二层：上级拿你佣金的 5%。第三层：第二层的 2%。硬顶三层。加成从协议剩余出，不扣任何人的份额。在仪表盘领取。",
+      "分享你的链接（?ref=你的钱包）。有人通过它创建矿池时，你拿走对方实付启动费的一份——已扣持仓折扣。直推从 10% 起，每多一笔 +1%，最高 30%。上级（第二层）拿你佣金的 5%。第三层拿第二层的 2%。然后停止。加成从协议剩余出，不扣任何人的份额。在推荐台领取。",
+    refCta: "打开推荐台 →",
     earnTitle: "质押创建者如何赚钱",
     earnP: "创建者从启动时设置的质押税和解押税中获益。每一侧最高 {max}%，收取的税会打到你选择的国库地址：",
     earnStake: "质押税 — 有人质押入池时按比例收取（最高 {max}%），打入国库。",
@@ -1593,6 +1627,10 @@ const hi = {
     live: "मेननेट फ़ीड · लाइव",
     referrals: "रेफ़रल",
     footer: "अनस्टेक पर टेन्योर रीसेट · ऑपरेटर टॉप-अप से रेट बढ़ सकता है",
+    holderKicker: "होल्डर रिवॉर्ड",
+    holderTitle: "पूल संभालता है। तुम्हें सिर्फ़ क्लेम करना है।",
+    holderBody:
+      "होल्डर रिवॉर्ड पूल इकट्ठा करके बाँटता है। स्टेकर्स को सिर्फ़ क्लेम करना होता है। pump.fun, Pons और StonkFun जैसे बड़े लॉन्चपैड शामिल हैं।",
   },
   connect: {
     withX: "X से कनेक्ट करें",
@@ -1688,6 +1726,21 @@ const hi = {
   docs: {
     title: "डॉक्स",
     back: "← डैशबोर्ड पर वापस",
+    subtitle:
+      "स्टेकिंग, होल्डर डिस्काउंट और रेफ़रल — साधारण भाषा में। Laforge टोकन pump.fun पर लॉन्च होगा।",
+    t4: "Laforge टोकन होल्ड करो (pump.fun पर लॉन्च) और लॉन्च फ़ीस कम — 10k पर 5%, 10M पर 30% तक।",
+    t6: "रेफ़रल लिंक शेयर करो। कोई तुम्हारे ज़रिए पूल बनाए तो लॉन्च फ़ीस का 10–30% मिलता है। दो और हॉप, फिर रुक।",
+    holdTitle: "होल्डर डिस्काउंट",
+    holdP:
+      "जिस वॉलेट से पूल बनाते हो उसी में Laforge टोकन होल्ड करो — pump.fun पर लॉन्च होगा। फ़ैक्टरी उसी ट्रांज़ैक्शन में बैलेंस पढ़कर लॉन्च फ़ीस काटती है। अभी CA नहीं; मिंट के बाद यहाँ आएगा।",
+    holdAmt: "होल्ड किए टोकन",
+    holdOff: "लॉन्च-फ़ीस छूट",
+    holdNote:
+      "यह सिर्फ़ पूल बनाने की नेटिव फ़ीस पर है। पूल में स्टेक करने पर प्रोटोकॉल फ़ीस नहीं।",
+    refTitle: "रेफ़रल से कमाओ",
+    refP:
+      "अपना लिंक शेयर करो (?ref=वॉलेट)। कोई उसके ज़रिए पूल बनाए तो तुम्हें उनकी असल चुकाई फ़ीस का हिस्सा मिलता है। डायरेक्ट 10% से, हर अगले पर +1%, अधिकतम 30%। हॉप 2 को 5%, हॉप 3 को हॉप 2 का 2%। फिर रुक। रेफ़रल डेस्क से क्लेम।",
+    refCta: "रेफ़रल डेस्क खोलें →",
   },
   faqs: {
     title: "सवाल",

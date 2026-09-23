@@ -265,7 +265,7 @@ describe("Stake tax taken from principal", function () {
   });
 });
 
-describe("Token-safety: fee-on-transfer and reentrancy are rejected", function () {
+describe("Token-safety: transfer fee capped at 10%", function () {
   let factory, launcher, treasury, alice;
 
   beforeEach(async function () {
@@ -274,33 +274,100 @@ describe("Token-safety: fee-on-transfer and reentrancy are rejected", function (
     factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
   });
 
-  it("fee-on-transfer token: createPool funding reverts with InexactTransfer", async function () {
+  async function launchFeeToken(feeBps, stakeTax = 0n) {
     const Fee = await ethers.getContractFactory("FeeOnTransferERC20");
-    const feeToken = await Fee.deploy(6, 100n); // 1% fee
+    const feeToken = await Fee.deploy(6, feeBps);
     await feeToken.mint(launcher.address, FUNDED_200M);
     await feeToken.connect(launcher).approve(await factory.getAddress(), MIN_FUNDING);
-    // The factory transfers the funding into the new pool, but the pool receives
-    // less than requested => the pool's strict-delta check reverts the whole tx.
-    await expect(
-      factory.connect(launcher).createPool(await feeToken.getAddress(), ethers.ZeroAddress, 14n, 0n, 0n, MIN_FUNDING, MIN_STAKE, ECOSYSTEM, { value: ECOSYSTEM_FEE })
-    ).to.be.revertedWithCustomError(await ethers.getContractFactory("StakingPool"), "InexactTransfer");
+    await factory.connect(launcher).createPool(
+      await feeToken.getAddress(),
+      stakeTax === 0n ? ethers.ZeroAddress : treasury.address,
+      14n,
+      stakeTax,
+      0n,
+      MIN_FUNDING,
+      MIN_STAKE,
+      ECOSYSTEM,
+      { value: ECOSYSTEM_FEE },
+    );
+    const pool = await ethers.getContractAt("StakingPool", await factory.poolOf(await feeToken.getAddress()));
+    return { feeToken, pool };
+  }
+
+  it("1% fee: funding and stake credit only what arrived", async function () {
+    const { feeToken, pool } = await launchFeeToken(100n);
+    const expectedFunded = MIN_FUNDING - (MIN_FUNDING * 100n) / 10_000n;
+    expect(await pool.fundedAmount()).to.equal(expectedFunded);
+    expect(await pool.rewardVaultBalance()).to.equal(expectedFunded);
+
+    await feeToken.mint(alice.address, T35K * 2n);
+    await feeToken.connect(alice).approve(await pool.getAddress(), T35K * 2n);
+    await pool.connect(alice).stake(T35K * 2n);
+
+    const received = (T35K * 2n) - ((T35K * 2n) * 100n) / 10_000n;
+    expect((await pool.positions(alice.address)).amount).to.equal(received);
+    expect(await pool.stakeVaultBalance()).to.equal(received);
+    const bal = await feeToken.balanceOf(await pool.getAddress());
+    expect(bal).to.equal(expectedFunded + received);
   });
 
-  it("fee-on-transfer token: staking reverts with InexactTransfer", async function () {
+  it("10% fee is the ceiling; 10.01% worth of bps above it reverts", async function () {
+    const { pool } = await launchFeeToken(1000n);
+    const expectedFunded = MIN_FUNDING - (MIN_FUNDING * 1000n) / 10_000n;
+    expect(await pool.fundedAmount()).to.equal(expectedFunded);
+
     const Fee = await ethers.getContractFactory("FeeOnTransferERC20");
-    const ft = await Fee.deploy(6, 100n);
-    // Funding a fee-on-transfer token through createPool already reverts with
-    // the strict-delta check — which is the token-safety guarantee. We assert it
-    // reverts on the funding path (createPool), since a fee token can never be
-    // successfully launched (and thus never reach a stake).
-    await ft.mint(launcher.address, FUNDED_200M);
-    await ft.connect(launcher).approve(await factory.getAddress(), MIN_FUNDING);
+    const tooHigh = await Fee.deploy(6, 1001n);
+    await tooHigh.mint(launcher.address, FUNDED_200M);
+    await tooHigh.connect(launcher).approve(await factory.getAddress(), MIN_FUNDING);
     await expect(
-      factory.connect(launcher).createPool(await ft.getAddress(), ethers.ZeroAddress, 14n, 0n, 0n, MIN_FUNDING, MIN_STAKE, ECOSYSTEM, { value: ECOSYSTEM_FEE })
-    ).to.be.revertedWithCustomError(await ethers.getContractFactory("StakingPool"), "InexactTransfer");
+      factory.connect(launcher).createPool(
+        await tooHigh.getAddress(),
+        ethers.ZeroAddress,
+        14n,
+        0n,
+        0n,
+        MIN_FUNDING,
+        MIN_STAKE,
+        ECOSYSTEM,
+        { value: ECOSYSTEM_FEE },
+      ),
+    ).to.be.revertedWithCustomError(await ethers.getContractFactory("StakingPool"), "TransferFeeTooHigh");
   });
 
+  it("protocol stake tax is taken from tokens received, not the nominal amount", async function () {
+    const { feeToken, pool } = await launchFeeToken(1000n, 1000n);
+    await feeToken.mint(alice.address, T35K * 2n);
+    await feeToken.connect(alice).approve(await pool.getAddress(), T35K * 2n);
+    await pool.connect(alice).stake(T35K * 2n);
+
+    const received = (T35K * 2n) - ((T35K * 2n) * 1000n) / 10_000n;
+    const tax = (received * 1000n) / 10_000n;
+    const net = received - tax;
+    expect((await pool.positions(alice.address)).amount).to.equal(net);
+    expect(await pool.owedToTreasury()).to.equal(tax);
+    expect(await pool.stakeVaultBalance()).to.equal(net);
+  });
+
+  it("unstake stays solvent when the token also fees the way out", async function () {
+    const { feeToken, pool } = await launchFeeToken(500n);
+    await feeToken.mint(alice.address, T35K * 2n);
+    await feeToken.connect(alice).approve(await pool.getAddress(), T35K * 2n);
+    await pool.connect(alice).stake(T35K * 2n);
+    const staked = (await pool.positions(alice.address)).amount;
+    const rewards = await pool.rewardVaultBalance();
+    await pool.connect(alice).unstake(staked);
+    expect((await pool.positions(alice.address)).amount).to.equal(0n);
+    expect(await pool.stakeVaultBalance()).to.equal(0n);
+    expect(await feeToken.balanceOf(await pool.getAddress())).to.equal(rewards);
+  });
+});
+
+describe("Token-safety: reentrancy is rejected", function () {
   it("reentrant token: claim reentry during payout is blocked by the guard", async function () {
+    const [launcher, , alice] = await ethers.getSigners();
+    const Factory = await ethers.getContractFactory("StakingFactory");
+    const factory = await Factory.deploy(BRONZE_FEE, ECOSYSTEM_FEE, MARKETING_FEE, FEE_RECIPIENT, ethers.ZeroAddress);
     const Re = await ethers.getContractFactory("ReentrantERC20");
     const rt = await Re.deploy(6);
     await rt.mint(launcher.address, FUNDED_200M);

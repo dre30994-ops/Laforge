@@ -1,4 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import CalculatorPage from "@/pages/calculator";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/calculator")({ component: CalculatorPage });
+export const Route = createFileRoute("/calculator")({
+  beforeLoad: () => {
+    throw redirect({ to: "/yield" });
+  },
+});

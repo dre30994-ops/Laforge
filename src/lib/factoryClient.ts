@@ -262,6 +262,29 @@ export const STAKING_POOL_ABI = [
       { name: "exists", type: "bool" },
     ],
   },
+  { type: "function", name: "holderRewardTokenCount", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "holderRewardTokens", stateMutability: "view", inputs: [{ type: "uint256" }], outputs: [{ type: "address" }] },
+  {
+    type: "function",
+    name: "pendingHolderReward",
+    stateMutability: "view",
+    inputs: [{ type: "address" }, { type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "syncHolderReward",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "rewardToken", type: "address" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "claimHolderReward",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "rewardToken", type: "address" }],
+    outputs: [],
+  },
 ] as const;
 
 export const ERC20_METADATA_ABI = [
@@ -717,6 +740,7 @@ export type PoolSummary = {
   stakeVolume?: bigint;
   unstakeVolume?: bigint;
   startTs?: number;
+  endTs?: number;
   demo?: boolean;
   treasury?: string;
   owedToTreasury?: bigint;
@@ -732,12 +756,38 @@ export function displayTier(
   return meta?.tier ?? p.tierOnChain ?? 0;
 }
 
-export function poolStatus(p: Pick<PoolSummary, "started" | "paused">):
-  | "live"
-  | "paused"
-  | "pending" {
+export type PoolLifecycle = "live" | "paused" | "pending" | "ended";
+
+export function poolEndTs(
+  p: Pick<PoolSummary, "endTs" | "startTs" | "durationDays">,
+): number {
+  if (p.endTs && p.endTs > 0) return p.endTs;
+  if (p.startTs && p.startTs > 0 && p.durationDays > 0) {
+    return p.startTs + p.durationDays * 86_400;
+  }
+  return 0;
+}
+
+export function poolFullyEmitted(
+  p: Pick<PoolSummary, "fundedAmount" | "totalEmitted">,
+): boolean {
+  const funded = p.fundedAmount ?? 0n;
+  const emitted = p.totalEmitted ?? 0n;
+  return funded > 0n && emitted >= funded;
+}
+
+export function poolStatus(
+  p: Pick<
+    PoolSummary,
+    "started" | "paused" | "endTs" | "startTs" | "durationDays" | "fundedAmount" | "totalEmitted"
+  >,
+  nowSec = Date.now() / 1000,
+): PoolLifecycle {
+  if (!p.started) return "pending";
+  const end = poolEndTs(p);
+  if ((end > 0 && nowSec >= end) || poolFullyEmitted(p)) return "ended";
   if (p.paused) return "paused";
-  return p.started ? "live" : "pending";
+  return "live";
 }
 
 export async function listPoolAddresses(network: EvmNetwork): Promise<string[]> {
@@ -812,7 +862,7 @@ export async function fetchPoolSummary(
     read<bigint>("owedToTreasury").catch(() => 0n),
   ]);
 
-  const [fundedAmount, totalEmitted, totalClaimed, rewardVaultBalance, minStake, totalStaked, startTs] =
+  const [fundedAmount, totalEmitted, totalClaimed, rewardVaultBalance, minStake, totalStaked, startTs, endTs] =
     await Promise.all([
       read<bigint>("fundedAmount").catch(() => 0n),
       read<bigint>("totalEmitted").catch(() => 0n),
@@ -821,6 +871,7 @@ export async function fetchPoolSummary(
       read<bigint>("minStake").catch(() => 0n),
       read<bigint>("totalStaked").catch(() => 0n),
       read<bigint>("startTs").catch(() => 0n),
+      read<bigint>("endTs").catch(() => 0n),
     ]);
 
   let symbol = "";
@@ -874,6 +925,7 @@ export async function fetchPoolSummary(
     rewardVaultBalance,
     minStake,
     startTs: Number(startTs) || undefined,
+    endTs: Number(endTs) || undefined,
     treasury,
     owedToTreasury,
   };
@@ -936,6 +988,7 @@ export function recordCreatedPool(
     totalEmitted: 0n,
     minStake: inputs.minStake,
     startTs: Math.floor(Date.now() / 1000),
+    endTs: Math.floor(Date.now() / 1000) + inputs.durationDays * 86_400,
   };
   addLocalPool(summary);
   return summary;
@@ -1035,6 +1088,83 @@ export async function claimFromPool(
     address: getAddress(pool.pool) as Hex,
     abi: STAKING_POOL_ABI,
     functionName: "claim",
+  });
+  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  return txHash;
+}
+
+export async function readHolderRewardTokens(pool: string, network: EvmNetwork): Promise<string[]> {
+  const client = getPublicClient(network);
+  const poolAddr = getAddress(pool) as Hex;
+  const count = (await client.readContract({
+    address: poolAddr,
+    abi: STAKING_POOL_ABI,
+    functionName: "holderRewardTokenCount",
+  })) as bigint;
+  const n = Number(count);
+  if (!Number.isFinite(n) || n <= 0) return [];
+  return Promise.all(
+    Array.from({ length: n }, (_, i) =>
+      client.readContract({
+        address: poolAddr,
+        abi: STAKING_POOL_ABI,
+        functionName: "holderRewardTokens",
+        args: [BigInt(i)],
+      }) as Promise<string>,
+    ),
+  );
+}
+
+export async function readPendingHolderReward(
+  pool: string,
+  user: string,
+  rewardToken: string,
+  network: EvmNetwork,
+): Promise<bigint> {
+  const client = getPublicClient(network);
+  return (await client.readContract({
+    address: getAddress(pool) as Hex,
+    abi: STAKING_POOL_ABI,
+    functionName: "pendingHolderReward",
+    args: [getAddress(user) as Hex, getAddress(rewardToken) as Hex],
+  })) as bigint;
+}
+
+export async function syncHolderReward(
+  walletClient: WalletClient,
+  pool: string,
+  network: EvmNetwork,
+  rewardToken: string,
+): Promise<string> {
+  return writeHolderReward(walletClient, pool, network, "syncHolderReward", rewardToken);
+}
+
+export async function claimHolderReward(
+  walletClient: WalletClient,
+  pool: string,
+  network: EvmNetwork,
+  rewardToken: string,
+): Promise<string> {
+  return writeHolderReward(walletClient, pool, network, "claimHolderReward", rewardToken);
+}
+
+async function writeHolderReward(
+  walletClient: WalletClient,
+  pool: string,
+  network: EvmNetwork,
+  fn: "syncHolderReward" | "claimHolderReward",
+  rewardToken: string,
+): Promise<string> {
+  const account = walletClient.account;
+  if (!account) throw new Error("Connect an EVM wallet.");
+  const publicClient = getPublicClient(network);
+  const txHash = await walletClient.writeContract({
+    account,
+    chain: network.chain,
+    address: getAddress(pool) as Hex,
+    abi: STAKING_POOL_ABI,
+    functionName: fn,
+    args: [getAddress(rewardToken) as Hex],
   });
   await publicClient.waitForTransactionReceipt({ hash: txHash });
   return txHash;

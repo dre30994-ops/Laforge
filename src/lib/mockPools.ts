@@ -259,6 +259,7 @@ function toSummary(seed: (typeof SEED)[string], vault: MockVault): PoolSummary {
     stakeVolume: vault.stakeVolume,
     unstakeVolume: vault.unstakeVolume,
     startTs: Math.floor(Date.now() / 1000) - Math.floor(seed.durationDays * 86_400 * 0.4),
+    endTs: Math.floor(Date.now() / 1000) + Math.floor(seed.durationDays * 86_400 * 0.6),
     demo: true,
   };
 }

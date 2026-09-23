@@ -53,6 +53,26 @@ export default function Home() {
 
             <StakingHero />
 
+            <section className="glass p-6 animate-rise" data-testid="holder-rewards-card">
+              <p className="label-term mb-2">{t("dash.holderKicker")}</p>
+              <h2 className="text-2xl md:text-3xl font-semibold tracking-tight leading-tight hero-title-gold">
+                {t("dash.holderTitle")}
+              </h2>
+              <p className="mt-3 text-sm text-mid leading-relaxed max-w-3xl">
+                {t("dash.holderBody")}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {["pump.fun", "Pons", "StonkFun"].map((name) => (
+                  <span
+                    key={name}
+                    className="rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-[11px] font-semibold tracking-wide text-hi"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </section>
+
             <HeroMetrics hideTvl />
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">

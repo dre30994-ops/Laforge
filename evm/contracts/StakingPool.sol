@@ -23,6 +23,10 @@ import {StakingMath} from "./StakingMath.sol";
 ///   principal and routed to a launcher-selected treasury via pull-payment.
 ///   Compounding pays no tax.
 /// * One-time funding at creation (factory-only `initializeFunded`).
+/// * Transfer-fee tokens are allowed up to 10% on the way in. The pool credits
+///   and funds only the tokens that arrived. On the way out the pool's balance
+///   must fall by exactly the amount sent — the recipient bears a normal fee,
+///   and a token that skims extra from the pool is rejected.
 /// * Permissionless crank. User actions auto-crank first so a stale pool
 ///   cannot trap exits. `stake`/`compound` require the program still be running;
 ///   `unstake`/`claim` remain available after the pool has been cranked to end.
@@ -36,12 +40,17 @@ contract StakingPool is ReentrancyGuard {
 
     uint256 public constant BPS_DENOM = 10_000;
     uint256 public constant MAX_TAX_BPS = 1_000;
+    /// Largest burn/redirect a token may take on the way in. 10%.
+    /// Applied to the amount that actually arrives, separate from stake/unstake tax.
+    uint256 public constant MAX_TRANSFER_FEE_BPS = 1_000;
     /// Authority may raise min-stake up to 10x the value set at creation.
     uint256 public constant MAX_MIN_STAKE_MULTIPLIER = 10;
     /// Fixed grace period after `endTs` before unallocated recovery: 7 days.
     uint256 public constant UNALLOCATED_GRACE_SECONDS = 7 * 24 * 60 * 60;
     /// Max crank chunks per `_sync` (8 * 250 = 2000 > 720 hourly steps of a 30d pool).
     uint256 private constant MAX_SYNC_CHUNKS = 8;
+    /// Launchpad payouts tracked at once. Bounds the checkpoint loop on stake.
+    uint256 public constant MAX_HOLDER_REWARDS = 8;
 
     // -------------------------------------------------------------------------
     // Immutable configuration
@@ -146,6 +155,18 @@ contract StakingPool is ReentrancyGuard {
 
     mapping(address => Position) public positions;
 
+    struct HolderReward {
+        uint256 accPerStake;
+        uint256 accounted;
+        bool registered;
+    }
+
+    /// Launchpad payouts that landed on this pool, split by raw stake.
+    mapping(address => HolderReward) public holderRewards;
+    address[] public holderRewardTokens;
+    mapping(address => mapping(address => uint256)) public holderDebt;
+    mapping(address => mapping(address => uint256)) public holderPending;
+
     // -------------------------------------------------------------------------
     // Events
     // -------------------------------------------------------------------------
@@ -162,6 +183,8 @@ contract StakingPool is ReentrancyGuard {
     event AuthorityTransferred(address indexed from, address indexed to);
     event UnallocatedWithdrawn(uint256 amount, uint256 remaining);
     event TreasuryWithdrawn(address indexed treasury, uint256 amount);
+    event HolderRewardAdded(address indexed rewardToken);
+    event HolderRewardClaimed(address indexed user, address indexed rewardToken, uint256 amount);
 
     // -------------------------------------------------------------------------
     // Errors
@@ -181,6 +204,8 @@ contract StakingPool is ReentrancyGuard {
     error NothingToWithdraw();
     error ZeroAmount();
     error InexactTransfer();
+    error TransferFeeTooHigh();
+    error TooManyHolderRewards();
     error ProgramEnded();
     error MinStakeTooHigh();
     error RemainingStake();
@@ -242,14 +267,37 @@ contract StakingPool is ReentrancyGuard {
         _;
     }
 
-    /// Pull exactly `amount` of `token` from `from`. Rejects honest fee-on-transfer
-    /// / rebasing tokens. Donations that arrive *before* this call are included in
-    /// `before` and do not fail the delta check.
-    function _pullExact(address from, uint256 amount) internal {
-        uint256 before = token.balanceOf(address(this));
+    /// Pull `amount` from `from`. Credits the caller the amount that actually
+    /// arrived. A token may take at most `MAX_TRANSFER_FEE_BPS` (10%). Anything
+    /// above that reverts. A token that delivers *more* than `amount` (mint-on-
+    /// transfer, reflection onto an existing balance) also reverts — the pool
+    /// would otherwise book rewards it does not hold, or book a surplus it
+    /// cannot attribute.
+    function _pull(address from, uint256 amount) internal returns (uint256 received) {
+        uint256 beforeBal = token.balanceOf(address(this));
         token.safeTransferFrom(from, address(this), amount);
-        uint256 delta = token.balanceOf(address(this)) - before;
-        if (delta != amount) revert InexactTransfer();
+        received = token.balanceOf(address(this)) - beforeBal;
+        if (received > amount) revert InexactTransfer();
+        uint256 minReceived = amount - (amount * MAX_TRANSFER_FEE_BPS) / BPS_DENOM;
+        if (received < minReceived) revert TransferFeeTooHigh();
+    }
+
+    /// Send `amount`. Two checks:
+    /// * the pool's balance falls by exactly `amount` (a token that debits the
+    ///   sender for more would skim other stakers);
+    /// * the recipient's balance rises by at least 90% of `amount` (the transfer
+    ///   fee they actually eat is capped at 10%).
+    /// A contract recipient that forwards the tokens out inside the transfer
+    /// will fail the second check — treasuries must be able to hold the token.
+    function _push(address to, uint256 amount) internal {
+        uint256 poolBefore = token.balanceOf(address(this));
+        uint256 toBefore = token.balanceOf(to);
+        token.safeTransfer(to, amount);
+        uint256 spent = poolBefore - token.balanceOf(address(this));
+        if (spent != amount) revert InexactTransfer();
+        uint256 got = token.balanceOf(to) - toBefore;
+        uint256 minGot = amount - (amount * MAX_TRANSFER_FEE_BPS) / BPS_DENOM;
+        if (got < minGot) revert TransferFeeTooHigh();
     }
 
     function _satSub(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -265,16 +313,20 @@ contract StakingPool is ReentrancyGuard {
         if (started) revert AlreadyStarted();
         if (amount == 0) revert ZeroAmount();
 
-        // Accept `balance >= amount` so a 1-wei donation to the predicted CREATE
-        // address cannot grief the launch. Shortfall (honest FoT) still reverts.
-        // Extra tokens sit unaccounted and are not treated as reward funding.
+        // Account the tokens that actually arrived, capped at `amount`.
+        // A pre-existing donation above `amount` stays unaccounted (same as
+        // before) so it cannot inflate the emission schedule. A shortfall
+        // within the 10% transfer-fee cap is what gets funded — never the
+        // nominal amount, which the token already burned.
         uint256 bal = token.balanceOf(address(this));
-        if (bal < amount) revert InexactTransfer();
+        uint256 minBal = amount - (amount * MAX_TRANSFER_FEE_BPS) / BPS_DENOM;
+        if (bal < minBal) revert TransferFeeTooHigh();
+        uint256 funded = bal < amount ? bal : amount;
 
-        rewardVaultBalance = amount;
-        fundedAmount = amount;
+        rewardVaultBalance = funded;
+        fundedAmount = funded;
 
-        baseRatePerPeriod = StakingMath.deriveBaseRateForDuration(amount, durationDays);
+        baseRatePerPeriod = StakingMath.deriveBaseRateForDuration(funded, durationDays);
         if (baseRatePerPeriod == 0) revert ZeroRate();
 
         startTs = block.timestamp;
@@ -282,7 +334,7 @@ contract StakingPool is ReentrancyGuard {
         lastUpdateTs = block.timestamp;
         started = true;
 
-        emit PoolStarted(baseRatePerPeriod, startTs, endTs, amount);
+        emit PoolStarted(baseRatePerPeriod, startTs, endTs, funded);
     }
 
     // -------------------------------------------------------------------------
@@ -455,10 +507,10 @@ contract StakingPool is ReentrancyGuard {
         }
 
         if (amount == 0) revert ZeroAmount();
-        _pullExact(msg.sender, amount);
+        uint256 received = _pull(msg.sender, amount);
 
-        uint256 stakeTax = (amount * stakeTaxBps) / BPS_DENOM;
-        uint256 delta = amount - stakeTax;
+        uint256 stakeTax = (received * stakeTaxBps) / BPS_DENOM;
+        uint256 delta = received - stakeTax;
 
         stakeVaultBalance += delta;
         if (stakeTax > 0) {
@@ -469,6 +521,7 @@ contract StakingPool is ReentrancyGuard {
             StakingMath.weightedDepositTs(oldAmount, pos.weightedDepositTs, delta, nowTs);
 
         uint256 newAmount = pos.amount + delta;
+        _settleHolder(msg.sender);
         pos.amount = newAmount;
 
         if (newAmount < minStake) revert BelowMinimumStake();
@@ -476,6 +529,7 @@ contract StakingPool is ReentrancyGuard {
         uint256 newK = _tenureSteps(pos, nowTs);
         totalWeight += newAmount * StakingMath.weightNumerator(newK);
         totalStaked += delta;
+        _lockHolderDebt(msg.sender);
 
         if (newK < StakingMath.TENURE_RAMP_STEPS) {
             rampingStake += newAmount;
@@ -517,8 +571,10 @@ contract StakingPool is ReentrancyGuard {
         _unregisterMaturing(pos, oldAmount);
 
         uint256 newAmount = pos.amount - amount;
+        _settleHolder(msg.sender);
         pos.amount = newAmount;
         totalStaked -= amount;
+        _lockHolderDebt(msg.sender);
 
         pos.weightedDepositTs = nowTs;
 
@@ -531,7 +587,7 @@ contract StakingPool is ReentrancyGuard {
             owedToTreasury += tax;
         }
         if (userAmount > 0) {
-            token.safeTransfer(msg.sender, userAmount);
+            _push(msg.sender, userAmount);
         }
 
         if (newAmount > 0) {
@@ -577,7 +633,7 @@ contract StakingPool is ReentrancyGuard {
         totalClaimed += payout;
         rewardVaultBalance -= payout;
 
-        token.safeTransfer(msg.sender, payout);
+        _push(msg.sender, payout);
 
         emit Claimed(msg.sender, payout);
     }
@@ -621,14 +677,16 @@ contract StakingPool is ReentrancyGuard {
 
         pos.pendingRewards = 0;
         uint256 newAmount = pos.amount + compoundAmount;
+        _settleHolder(msg.sender);
+        pos.amount = newAmount;
 
         pos.weightedDepositTs =
             StakingMath.weightedDepositTs(oldAmount, pos.weightedDepositTs, compoundAmount, nowTs);
-        pos.amount = newAmount;
 
         pos.totalClaimed += compoundAmount;
         totalClaimed += compoundAmount;
         totalStaked += compoundAmount;
+        _lockHolderDebt(msg.sender);
 
         uint256 newK = _tenureSteps(pos, nowTs);
         totalWeight += newAmount * StakingMath.weightNumerator(newK);
@@ -645,6 +703,120 @@ contract StakingPool is ReentrancyGuard {
         emit Compounded(msg.sender, compoundAmount, newAmount);
     }
 
+    function holderRewardTokenCount() external view returns (uint256) {
+        return holderRewardTokens.length;
+    }
+
+    function addHolderReward(address rewardToken) external onlyAuthority {
+        _registerHolder(rewardToken, true);
+    }
+
+    function syncHolderReward(address rewardToken) external nonReentrant {
+        if (rewardToken == address(0)) revert ZeroAmount();
+        _registerHolder(rewardToken, false);
+        _accrueHolder(rewardToken);
+    }
+
+    function pendingHolderReward(address user, address rewardToken) external view returns (uint256) {
+        if (!holderRewards[rewardToken].registered) return 0;
+        uint256 acc = holderRewards[rewardToken].accPerStake;
+        uint256 accounted = holderRewards[rewardToken].accounted;
+        uint256 bal = _holderDistributable(rewardToken);
+        if (bal > accounted && totalStaked > 0) {
+            acc += ((bal - accounted) * StakingMath.ACC_SCALE) / totalStaked;
+        }
+        uint256 pending = holderPending[user][rewardToken];
+        uint256 amt = positions[user].amount;
+        if (amt == 0) return pending;
+        uint256 accumulated = (amt * acc) / StakingMath.ACC_SCALE;
+        uint256 debt = holderDebt[user][rewardToken];
+        if (accumulated > debt) pending += accumulated - debt;
+        return pending;
+    }
+
+    function claimHolderReward(address rewardToken) external nonReentrant {
+        if (!holderRewards[rewardToken].registered) revert ZeroAmount();
+        _settleHolder(msg.sender);
+        _lockHolderDebt(msg.sender);
+        uint256 pay = holderPending[msg.sender][rewardToken];
+        if (pay == 0) revert NothingToWithdraw();
+        holderPending[msg.sender][rewardToken] = 0;
+        HolderReward storage r = holderRewards[rewardToken];
+        if (pay > r.accounted) pay = r.accounted;
+        r.accounted -= pay;
+        _payReward(rewardToken, msg.sender, pay);
+        emit HolderRewardClaimed(msg.sender, rewardToken, pay);
+    }
+
+    function _registerHolder(address rewardToken, bool force) internal {
+        if (rewardToken == address(0)) revert ZeroAmount();
+        if (holderRewards[rewardToken].registered) return;
+        if (!force && _holderDistributable(rewardToken) == 0) revert ZeroAmount();
+        if (holderRewardTokens.length >= MAX_HOLDER_REWARDS) revert TooManyHolderRewards();
+        holderRewards[rewardToken].registered = true;
+        holderRewardTokens.push(rewardToken);
+        emit HolderRewardAdded(rewardToken);
+    }
+
+    function _holderDistributable(address rewardToken) internal view returns (uint256) {
+        uint256 bal = IERC20(rewardToken).balanceOf(address(this));
+        if (rewardToken != address(token)) return bal;
+        uint256 reserved = stakeVaultBalance + rewardVaultBalance + owedToTreasury;
+        return bal > reserved ? bal - reserved : 0;
+    }
+
+    function _accrueHolder(address rewardToken) internal {
+        HolderReward storage r = holderRewards[rewardToken];
+        if (!r.registered) return;
+        uint256 bal = _holderDistributable(rewardToken);
+        if (bal <= r.accounted || totalStaked == 0) return;
+        r.accPerStake += ((bal - r.accounted) * StakingMath.ACC_SCALE) / totalStaked;
+        r.accounted = bal;
+    }
+
+    function _settleHolder(address user) internal {
+        uint256 n = holderRewardTokens.length;
+        if (n == 0) return;
+        uint256 amt = positions[user].amount;
+        for (uint256 i; i < n; ++i) {
+            address rewardToken = holderRewardTokens[i];
+            _accrueHolder(rewardToken);
+            if (amt == 0) continue;
+            uint256 accumulated = (amt * holderRewards[rewardToken].accPerStake) / StakingMath.ACC_SCALE;
+            uint256 debt = holderDebt[user][rewardToken];
+            if (accumulated > debt) {
+                holderPending[user][rewardToken] += accumulated - debt;
+            }
+        }
+    }
+
+    function _lockHolderDebt(address user) internal {
+        uint256 n = holderRewardTokens.length;
+        if (n == 0) return;
+        uint256 amt = positions[user].amount;
+        for (uint256 i; i < n; ++i) {
+            address rewardToken = holderRewardTokens[i];
+            holderDebt[user][rewardToken] =
+                (amt * holderRewards[rewardToken].accPerStake) / StakingMath.ACC_SCALE;
+        }
+    }
+
+    function _payReward(address rewardToken, address to, uint256 amount) internal {
+        if (rewardToken == address(token)) {
+            _push(to, amount);
+            return;
+        }
+        IERC20 t = IERC20(rewardToken);
+        uint256 poolBefore = t.balanceOf(address(this));
+        uint256 toBefore = t.balanceOf(to);
+        t.safeTransfer(to, amount);
+        uint256 spent = poolBefore - t.balanceOf(address(this));
+        if (spent != amount) revert InexactTransfer();
+        uint256 got = t.balanceOf(to) - toBefore;
+        uint256 minGot = amount - (amount * MAX_TRANSFER_FEE_BPS) / BPS_DENOM;
+        if (got < minGot) revert TransferFeeTooHigh();
+    }
+
     /// Pay out accrued stake/unstake taxes to the treasury (pull-payment).
     /// Permissionless: destination is the immutable `treasury`.
     function withdrawTreasury() external nonReentrant {
@@ -653,7 +825,7 @@ contract StakingPool is ReentrancyGuard {
         if (amount == 0) revert NothingToWithdraw();
 
         owedToTreasury = 0;
-        token.safeTransfer(treasury, amount);
+        _push(treasury, amount);
 
         emit TreasuryWithdrawn(treasury, amount);
     }
@@ -700,7 +872,7 @@ contract StakingPool is ReentrancyGuard {
 
         unallocated -= amount;
         rewardVaultBalance -= amount;
-        token.safeTransfer(authority, amount);
+        _push(authority, amount);
 
         emit UnallocatedWithdrawn(amount, unallocated);
     }

@@ -3,8 +3,8 @@ pragma solidity 0.8.24;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/// A fee-on-transfer token: burns `feeBps` of every transfer. Used to verify the
-/// pool's Option-A token-safety policy rejects non-exact transfers.
+/// A fee-on-transfer token: burns `feeBps` of every transfer. The pool accepts
+/// this up to 10% (1000 bps) and credits only the tokens that arrived.
 contract FeeOnTransferERC20 is ERC20 {
     uint8 private immutable _decimals;
     uint256 public feeBps;
@@ -20,6 +20,11 @@ contract FeeOnTransferERC20 is ERC20 {
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
+    }
+
+    function setFeeBps(uint256 feeBps_) external {
+        require(feeBps_ <= 10_000, "fee");
+        feeBps = feeBps_;
     }
 
     function _update(address from, address to, uint256 value) internal override {

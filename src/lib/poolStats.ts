@@ -37,11 +37,17 @@ export function poolToStats(
   const remaining = toEcon(pool.rewardVaultBalance) || Math.max(0, funded - emitted);
   const durationDays = pool.durationDays > 0 ? pool.durationDays : PROGRAM_DAYS;
   const elapsedFrac = pool.demo ? 0.35 : 0.4;
-  const startTs = now - durationDays * 86_400 * elapsedFrac;
-  const endTs = startTs + durationDays * 86_400;
+  const startTs =
+    !pool.demo && pool.startTs && pool.startTs > 0
+      ? pool.startTs
+      : now - durationDays * 86_400 * elapsedFrac;
+  const endTs =
+    !pool.demo && pool.endTs && pool.endTs > 0
+      ? pool.endTs
+      : startTs + durationDays * 86_400;
 
-  const daysLeft = Math.max(0.5, (endTs - now) / 86_400);
-  const dailyRemaining = remaining / (daysLeft * 2);
+  const daysLeft = Math.max(0, (endTs - now) / 86_400);
+  const dailyRemaining = daysLeft > 0 && remaining > 0 ? remaining / (daysLeft * 2) : 0;
   const currentRate = dailyRemaining / TICKS_PER_DAY;
 
   return {

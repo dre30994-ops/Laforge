@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { TerminalShell } from "@/components/TerminalShell";
+import { ApyCalculator } from "@/components/ApyCalculator";
 import { DemoWarning } from "@/components/DemoWarning";
 import { WalletButton } from "@/components/WalletButton";
 import { useConnectedAccount } from "@/hooks/useConnectedAccount";
@@ -16,13 +17,8 @@ import {
 import { useI18n } from "@/components/LanguageProvider";
 
 /**
- * Yield page (/yield): visualizes the connected wallet's reward growth.
- *
- * The cumulative-growth curve is driven by the user's real on-chain staked
- * amount and tenure multiplier (via usePosition) when available, falling back
- * to the illustrative pool model when disconnected so the page still renders a
- * meaningful shape. Reward math flows through the shared `projectRewards`
- * model, so figures agree with the dashboard and calculator.
+ * Yield page (/yield): live reward growth plus the APY projector.
+ * /calculator redirects here.
  */
 export default function YieldPage() {
   const { t } = useI18n();
@@ -30,7 +26,6 @@ export default function YieldPage() {
   const stats = usePoolStats();
   const { data: pos, enabled: posEnabled, loading } = usePosition();
 
-  // Use real position values when we can read them; otherwise the pool model.
   const stake = posEnabled ? Number(pos.staked) : stats.yourStake;
   const tenureMultiplier = posEnabled ? pos.tenureMultiplier : stats.yourMultiplier;
   const pending = posEnabled ? Number(pos.pending) : stats.yourPending;
@@ -47,103 +42,124 @@ export default function YieldPage() {
         poolAvgMultiplier: stats.poolAvgMultiplier,
         horizonDays: 1,
       }),
-    [stake, stats, tenureMultiplier]
+    [stake, stats, tenureMultiplier],
   );
 
-  const lifetime = pending + claimed; // rewards earned so far (claimed + unclaimed)
+  const lifetime = pending + claimed;
 
   return (
     <TerminalShell>
-        <main className="flex-1 min-w-0 px-4 md:px-6 lg:px-8 py-6">
-          <div className="max-w-[900px] mx-auto space-y-6">
-            {/* Header */}
-            <header className="animate-rise">
-              <Link to="/dashboard" className="label-term hover:text-gold-neon transition-colors">
-                {t("common.back")}
-              </Link>
-              <div className="flex items-end justify-between flex-wrap gap-3 mt-3">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-hi">
-                    {t("yieldPage.title")}
-                  </h1>
-                  <p className="text-mid mt-2 leading-relaxed">
-                    {t("yieldPage.intro", { n: PROGRAM_DAYS })}
-                  </p>
-                </div>
-                {connected && (
-                  <span className="label-term">{loading ? t("yieldPage.syncing") : t("yieldPage.live")}</span>
-                )}
-              </div>
-            </header>
-
-            <DemoWarning />
-
-            {!connected && (
-              <section className="glass glass-gold p-5 animate-rise flex items-center justify-between flex-wrap gap-3">
-                <p className="text-sm text-mid leading-relaxed max-w-md">
-                  {t("yieldPage.illustrative")}
+      <main className="flex-1 min-w-0 px-4 md:px-6 lg:px-8 py-6">
+        <div className="max-w-[1100px] mx-auto space-y-6">
+          <header className="animate-rise">
+            <Link to="/" className="label-term hover:text-gold-neon transition-colors">
+              {t("common.back")}
+            </Link>
+            <div className="flex items-end justify-between flex-wrap gap-3 mt-3">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-hi">
+                  {t("yieldPage.title")}
+                </h1>
+                <p className="text-mid mt-2 leading-relaxed max-w-xl">
+                  {t("yieldPage.intro", { n: PROGRAM_DAYS })}
                 </p>
-                <WalletButton />
-              </section>
-            )}
+              </div>
+              {connected && (
+                <span className="label-term">{loading ? t("yieldPage.syncing") : t("yieldPage.live")}</span>
+              )}
+            </div>
+          </header>
 
-            {/* Reward metrics */}
-            <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-rise">
-              <Metric
-                label={t("yieldPage.pending")}
-                value={formatCompact(toTokens(pending))}
-                sub={t("yieldPage.unclaimed")}
-                accent="pos"
-              />
-              <Metric
-                label={t("yieldPage.claimed")}
-                value={formatCompact(toTokens(claimed))}
-                sub={t("yieldPage.lifetime")}
-                accent="gold"
-              />
-              <Metric
-                label={t("yieldPage.earned")}
-                value={formatCompact(toTokens(lifetime))}
-                sub={t("yieldPage.claimedPending")}
-                accent="hi"
-              />
-              <Metric
-                label={t("yieldPage.daily")}
-                value={formatCompact(toTokens(daily.dailyReward))}
-                sub={t("yieldPage.perDay")}
-                accent="pos"
-              />
+          <DemoWarning />
+
+          {!connected && (
+            <section className="glass glass-gold p-5 animate-rise flex items-center justify-between flex-wrap gap-3">
+              <p className="text-sm text-mid leading-relaxed max-w-md">
+                {t("yieldPage.illustrative")}
+              </p>
+              <WalletButton />
             </section>
+          )}
 
-            {/* Growth chart */}
-            <RewardGrowthChart
-              stake={stake}
-              tenureMultiplier={tenureMultiplier}
-              earnedSoFar={toTokens(lifetime)}
+          <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-rise">
+            <Metric
+              label={t("yieldPage.pending")}
+              value={formatCompact(toTokens(pending))}
+              sub={t("yieldPage.unclaimed")}
+              accent="pos"
             />
+            <Metric
+              label={t("yieldPage.claimed")}
+              value={formatCompact(toTokens(claimed))}
+              sub={t("yieldPage.lifetime")}
+              accent="gold"
+            />
+            <Metric
+              label={t("yieldPage.earned")}
+              value={formatCompact(toTokens(lifetime))}
+              sub={t("yieldPage.claimedPending")}
+              accent="hi"
+            />
+            <Metric
+              label={t("yieldPage.daily")}
+              value={formatCompact(toTokens(daily.dailyReward))}
+              sub={t("yieldPage.perDay")}
+              accent="pos"
+            />
+          </section>
 
-            {/* Chart description */}
-            <section className="glass p-6 animate-rise">
-              <h2 className="label-term !text-[10px] mb-3">{t("yieldPage.chart")}</h2>
-              <p className="text-sm text-mid leading-relaxed">
-                {t("yieldPage.chartBody", { n: PROGRAM_DAYS })}
-              </p>
-            </section>
-
-            <footer className="pt-1">
-              <p className="label-term !text-[9px] !tracking-normal !normal-case text-lo leading-snug">
-                Projection assumes the current emission rate and pool composition hold. The dashed
-                marker shows today. Actual yield varies with TVL, the emission ramp, and operator
-                top-ups. See the{" "}
-                <Link to="/docs" className="text-gold-neon hover:underline">
-                  docs
-                </Link>{" "}
-                for the full mechanics.
-              </p>
-            </footer>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-2 space-y-4">
+              <RewardGrowthChart
+                stake={stake}
+                tenureMultiplier={tenureMultiplier}
+                earnedSoFar={toTokens(lifetime)}
+              />
+              <section className="glass p-5 animate-rise">
+                <h2 className="label-term !text-[10px] mb-2">{t("yieldPage.chart")}</h2>
+                <p className="text-sm text-mid leading-relaxed">
+                  {t("yieldPage.chartBody", { n: PROGRAM_DAYS })}
+                </p>
+              </section>
+            </div>
+            <div className="lg:col-span-1 space-y-4">
+              <ApyCalculator />
+              <section className="glass p-5 animate-rise">
+                <h2 className="label-term !text-[10px] mb-3">{t("calcPage.how")}</h2>
+                <ol className="space-y-3 text-sm text-mid leading-relaxed">
+                  <li className="flex gap-3">
+                    <Step n={1} />
+                    <span>{t("calcPage.step1")}</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <Step n={2} />
+                    <span>{t("calcPage.step2")}</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <Step n={3} />
+                    <span>{t("calcPage.step3")}</span>
+                  </li>
+                </ol>
+                <p className="label-term !text-[9px] !tracking-normal !normal-case mt-4 leading-snug text-lo">
+                  {t("calcPage.estimates")}
+                </p>
+              </section>
+            </div>
           </div>
-        </main>
+        </div>
+      </main>
     </TerminalShell>
+  );
+}
+
+function Step({ n }: { n: number }) {
+  return (
+    <span
+      className="mono shrink-0 grid place-items-center w-6 h-6 rounded-lg text-[11px] font-bold text-[#0a0c0f]"
+      style={{ background: "linear-gradient(180deg, var(--neon-gold), var(--amber))" }}
+    >
+      {n}
+    </span>
   );
 }
 
@@ -179,11 +195,6 @@ interface Point {
   y: number;
 }
 
-/**
- * Cumulative reward-growth curve for a given position (stake + tenure), drawn
- * as pure SVG. Integrates the shared reward model day-by-day across the program
- * timeline, applying the emission ramp so the early slope steepens then settles.
- */
 function RewardGrowthChart({
   stake,
   tenureMultiplier,
@@ -193,6 +204,7 @@ function RewardGrowthChart({
   tenureMultiplier: number;
   earnedSoFar: number;
 }) {
+  const { t } = useI18n();
   const stats = usePoolStats();
   const gradId = useId();
   const [hover, setHover] = useState<Point | null>(null);
@@ -252,14 +264,16 @@ function RewardGrowthChart({
     <div className="glass p-5 animate-rise">
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h2 className="text-sm font-semibold text-hi tracking-tight">Cumulative Yield</h2>
+          <h2 className="text-sm font-semibold text-hi tracking-tight">
+            {t("yieldPage.cumulative", { n: PROGRAM_DAYS })}
+          </h2>
           <p className="label-term mt-0.5">
-            {formatCompact(earnedSoFar)} earned so far · {PROGRAM_DAYS}-day program
+            {formatCompact(earnedSoFar)} {t("yieldPage.lifetime")}
           </p>
         </div>
         <div className="text-right">
           <div className="mono text-lg text-gold-neon leading-none">{formatCompact(total)}</div>
-          <div className="label-term mt-1">projected total</div>
+          <div className="label-term mt-1">{t("yieldPage.projected")}</div>
         </div>
       </div>
 
@@ -340,7 +354,7 @@ function RewardGrowthChart({
             className="absolute -translate-x-1/2 -translate-y-full pointer-events-none glass !rounded-lg px-3 py-2"
             style={{ left: `${(hover.x / W) * 100}%`, top: `${(hover.y / H) * 100}%` }}
           >
-            <div className="label-term !text-[9px]">Day {hover.day}</div>
+            <div className="label-term !text-[9px]">{t("common.daysShort", { n: hover.day })}</div>
             <div className="mono text-sm text-gold-neon">{formatCompact(hover.value)}</div>
           </div>
         )}
@@ -348,7 +362,7 @@ function RewardGrowthChart({
         <div className="flex justify-between mt-1 px-2">
           {[0, Math.round(PROGRAM_DAYS / 2), PROGRAM_DAYS].map((d) => (
             <span key={d} className="label-term !text-[9px]">
-              D{d}
+              {t("common.daysShort", { n: d })}
             </span>
           ))}
         </div>
@@ -357,7 +371,6 @@ function RewardGrowthChart({
   );
 }
 
-/** Catmull-Rom → cubic Bézier smoothing for a clean curve. */
 function smoothPath(pts: Point[]): string {
   if (pts.length < 2) return "";
   const d: string[] = [`M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`];
@@ -371,7 +384,7 @@ function smoothPath(pts: Point[]): string {
     const cp2x = p2.x - (p3.x - p1.x) / 6;
     const cp2y = p2.y - (p3.y - p1.y) / 6;
     d.push(
-      `C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+      `C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`,
     );
   }
   return d.join(" ");

@@ -5,6 +5,7 @@ import {
   displayTier,
   listPools,
   poolStatus,
+  type PoolLifecycle,
   type PoolSummary,
 } from "@/lib/factoryClient";
 import { getAllPoolMeta, metaForPool, type PoolMeta } from "@/lib/poolMeta";
@@ -371,12 +372,13 @@ function SocialIcon({ kind }: { kind: string }) {
   );
 }
 
-function StatusPill({ status }: { status: "live" | "paused" | "pending" }) {
+function StatusPill({ status }: { status: PoolLifecycle }) {
   const { t } = useI18n();
   const map = {
     live: { label: t("status.live"), cls: "bg-green-500/15 text-green-300" },
     paused: { label: t("status.paused"), cls: "bg-amber-500/15 text-amber-300" },
     pending: { label: t("status.pending"), cls: "bg-black/[0.06] text-lo" },
+    ended: { label: t("status.ended"), cls: "bg-black/[0.08] text-lo" },
   } as const;
   const { label, cls } = map[status];
   return (
