@@ -23,10 +23,10 @@ type Checkpoint = {
 const CHECKPOINTS: Checkpoint[] = [
   {
     n: 1,
-    title: "Deploy Laforge native token",
+    title: "Deploy Forge native token",
     icon: "laforge",
     blurb:
-      "Mint and launch the Laforge native token — the reward asset that powers every staking pool.",
+      "Mint and launch the Forge native token — the reward asset that powers every staking pool.",
     status: "done",
   },
   {
@@ -75,15 +75,15 @@ const CHECKPOINTS: Checkpoint[] = [
   },
   {
     n: 8,
-    title: "Laforge World play test",
+    title: "Forge World play test",
     icon: "play",
     blurb:
-      "Open an internal play test of Laforge World to validate core gameplay and integrations.",
+      "Open an internal play test of Forge World to validate core gameplay and integrations.",
     status: "upcoming",
   },
   {
     n: 9,
-    title: "Laforge World beta test",
+    title: "Forge World beta test",
     icon: "beta",
     blurb:
       "Expand to a public beta — wider access, load testing, and community feedback before launch.",
@@ -91,9 +91,9 @@ const CHECKPOINTS: Checkpoint[] = [
   },
   {
     n: 10,
-    title: "Laforge World goes live",
+    title: "Forge World goes live",
     icon: "live",
-    blurb: "Full public launch of Laforge World for everyone.",
+    blurb: "Full public launch of Forge World for everyone.",
     status: "upcoming",
   },
 ];

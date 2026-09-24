@@ -1,5 +1,5 @@
 /**
- * Laforge pool-meta worker.
+ * Forge pool-meta worker.
  *
  * KV JSON keyed by lowercased token (and optionally pool) address.
  * R2 raster bytes for image/banner.

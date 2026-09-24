@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 
 /**
- * FAQ / troubleshooting page. Grounded in Laforge's real, sometimes
+ * FAQ / troubleshooting page. Grounded in Forge's real, sometimes
  * counter-intuitive behavior (hourly reward checkpoints, min-stake gating,
  * the permissionless crank, USD price fallbacks, the exit tax, etc.) so
  * users can self-serve the issues that actually come up in the live flow.
@@ -220,7 +220,7 @@ export default function FaqPage() {
                 </h1>
                 <p className="text-mid mt-2 leading-relaxed">
                   Quick answers to the issues that come up most often when staking,
-                  claiming, and managing pools on Laforge.
+                  claiming, and managing pools on Forge.
                 </p>
               </div>
             </header>

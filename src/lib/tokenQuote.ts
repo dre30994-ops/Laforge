@@ -195,7 +195,7 @@ async function fetchJson(urls: string[]): Promise<unknown> {
       const res = await fetch(url, {
         headers: {
           Accept: "application/json",
-          "User-Agent": "Mozilla/5.0 (compatible; Laforge/1.0)",
+          "User-Agent": "Mozilla/5.0 (compatible; Forge/1.0)",
         },
         signal: AbortSignal.timeout(8_000),
       });

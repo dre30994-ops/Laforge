@@ -60,7 +60,7 @@ export default function DocsPage() {
                 ← Back to dashboard
               </Link>
               <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-hi mt-3">
-                How Laforge works
+                How Forge works
               </h1>
               <p className="text-mid mt-2 leading-relaxed">
                 A plain-English guide to staking on The Forge — how you earn, why holding

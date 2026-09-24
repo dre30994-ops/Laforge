@@ -234,7 +234,7 @@ export default function LandingPage() {
         {/* Logo mark */}
         <img
           src="/icon2_nobg.png"
-          alt="Laforge"
+          alt="Forge"
           width={72}
           height={72}
           className="mb-6 w-18 h-18 rounded-2xl shadow-2xl"
@@ -254,7 +254,7 @@ export default function LandingPage() {
             letterSpacing: "-0.02em",
           }}
         >
-          Laforge World
+          Forge World
         </h1>
 
         {/* Subtitle */}

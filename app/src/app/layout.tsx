@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Forge — Staking Terminal",
+  title: "Forge",
   description:
     "A premium DeFi staking terminal. Track staked value, accumulating yield, and project your APY.",
   manifest: "/manifest.webmanifest",

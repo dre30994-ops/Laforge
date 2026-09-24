@@ -111,17 +111,17 @@ export function Sidebar() {
         href="/"
         className="flex items-center gap-3 px-1 pb-5 mb-4 border-b border-black/[0.06]
                    rounded-lg hover:opacity-90 transition-opacity"
-        aria-label="Laforge — back to landing page"
+        aria-label="Forge — back to landing page"
       >
         <img
           src="/icon2_nobg.png"
-          alt="Laforge"
+          alt="Forge"
           width={36}
           height={36}
           className="w-9 h-9 rounded-lg"
         />
         <div>
-          <div className="text-sm font-semibold tracking-tight text-hi">Laforge</div>
+          <div className="text-sm font-semibold tracking-tight text-hi">Forge</div>
           <div className="label-term !text-[9px]">Staking Terminal</div>
         </div>
       </Link>

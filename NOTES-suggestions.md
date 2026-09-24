@@ -1,6 +1,6 @@
 # Saved Suggestions (for later implementation)
 
-Project: `C:\Users\dre30\Projects\test4` — Laforge Staking Terminal (Next.js app under `app/`).
+Project: `C:\Users\dre30\Projects\test4` — Forge Staking Terminal (Next.js app under `app/`).
 
 ---
 

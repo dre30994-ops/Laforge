@@ -10,7 +10,7 @@ import { CreatePoolButton } from "@/components/CreatePoolButton";
  * "Create Stake" call-to-action, and a secondary "How it works" link that
  * routes to the docs page.
  *
- * Right column: the Laforge mark (icon2_nobg.png) centered inside a slowly
+ * Right column: the Forge mark (icon2_nobg.png) centered inside a slowly
  * rotating ring of placeholder icon chips that encircle it. The ring spins
  * while each chip counter-rotates so the glyphs stay upright.
  */
@@ -171,7 +171,7 @@ function OrbitMark() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/icon2_nobg.png"
-        alt="Laforge"
+        alt="Forge"
         className="relative z-[1] w-28 h-28 md:w-32 md:h-32 object-contain drop-shadow-[0_0_28px_rgba(255,207,77,0.35)]"
       />
 

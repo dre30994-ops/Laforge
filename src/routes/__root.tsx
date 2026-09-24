@@ -9,7 +9,7 @@ import { ThemeBoot } from "@/components/ThemeToggle";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Laforge — Staking Terminal";
+const APP_NAME = "Forge";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -25,7 +25,7 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#d4a528" },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },

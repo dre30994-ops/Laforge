@@ -1,6 +1,6 @@
 # Pool metadata worker
 
-Off-chain nickname / image / banner / socials for Laforge pools.
+Off-chain nickname / image / banner / socials for Forge pools.
 
 Metadata is keyed by lowercased **token** address. Banner and socials are
 persisted only when the matching factory reports `pool.tier() >= 1`.

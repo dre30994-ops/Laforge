@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Laforge">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Forge">
   <!-- Black rounded tile -->
   <rect width="512" height="512" rx="112" fill="#000000"/>
   <rect x="6" y="6" width="500" height="500" rx="108" fill="none" stroke="#2a1f0a" stroke-width="3"/>

@@ -88,13 +88,13 @@ const en = {
     faqs: "FAQs",
     samples: "Samples",
     createStake: "Create Stake",
-    backLanding: "Laforge — dashboard",
+    backLanding: "Forge — dashboard",
     stakingTerminal: "Staking Terminal",
     openMenu: "Open menu",
     closeMenu: "Close menu",
   },
   landing: {
-    kicker: "Laforge",
+    kicker: "Forge",
     staking: "Staking ",
     nexus: "Nexus",
     and: " and ",
@@ -114,6 +114,9 @@ const en = {
     holderTitle: "The Pool handles them. You just claim.",
     holderBody:
       "Holder rewards are collected and split by the Pool. Stakers only have to claim. That covers the major launchpads — pump.fun, Pons, and StonkFun.",
+    worldTitle: "The World Forge",
+    worldBody:
+      "Forge is a multichain platform. One desk creates a pool, stakes, and claims whether that pool lives on Robinhood or Ethereum.",
     stepsKicker: "Five steps",
     step1: "Create",
     step1d: "Launch a pool.",
@@ -187,7 +190,7 @@ const en = {
     noTreasury:
       "No treasury — you will not receive any tokens from this pool. Stake and unstake taxes stay at 0% until you set a valid treasury that can accept the token.",
     treasuryOk:
-      "Stake/unstake tax is paid only to this address. It is not the connected wallet and it is not Laforge’s launch-fee recipient.",
+      "Stake/unstake tax is paid only to this address. It is not the connected wallet and it is not Forge’s launch-fee recipient.",
     important: "Important:",
     taxFlow:
       "Stake and unstake taxes are deducted into the pool, then released to your treasury. Claim has no tax. The app sends the release automatically after each stake/unstake (a second wallet confirmation). Anyone can also press “Send taxes to treasury” on the pool page. Use a wallet or a contract that can receive this ERC-20.",
@@ -374,7 +377,7 @@ const en = {
       "Compact listing — no banner or socials yet. Anyone can boost this pool with the Marketing Add-on to unlock branding for the operator and a 12-hour trending slot.",
     taxesWaiting: "Taxes waiting for treasury",
     taxesBody:
-      "{amount} {symbol} from stake/unstake tax is sitting in this pool. Claim has no tax. This pays the address set at pool creation — {dest} — not the operator and not Laforge’s launch-fee wallet.",
+      "{amount} {symbol} from stake/unstake tax is sitting in this pool. Claim has no tax. This pays the address set at pool creation — {dest} — not the operator and not Forge’s launch-fee wallet.",
     sendTaxes: "Send taxes to treasury",
     sending: "Sending…",
     sent: "Sent to treasury {dest}.",
@@ -609,16 +612,16 @@ const en = {
   },
   roadmap: {
     title: "Roadmap",
-    intro: "The path from token launch to Laforge World going live — shipped in order.",
+    intro: "The path from token launch to Forge World going live — shipped in order.",
     progress: "Progress",
     done: "Shipped",
     active: "Now",
     upcoming: "Upcoming",
     items: [
       {
-        title: "Deploy Laforge native token",
+        title: "Deploy Forge native token",
         blurb:
-          "Mint and launch the Laforge native token — the reward asset that powers every staking pool.",
+          "Mint and launch the Forge native token — the reward asset that powers every staking pool.",
       },
       {
         title: "Robinhood EVM staking",
@@ -637,18 +640,18 @@ const en = {
       },
       { title: "Coming soon", blurb: "Announcement incoming" },
       {
-        title: "Laforge World play test",
+        title: "Forge World play test",
         blurb:
-          "Open an internal play test of Laforge World to validate core gameplay and integrations.",
+          "Open an internal play test of Forge World to validate core gameplay and integrations.",
       },
       {
-        title: "Laforge World beta test",
+        title: "Forge World beta test",
         blurb:
           "Expand to a public beta — wider access, load testing, and community feedback before launch.",
       },
       {
-        title: "Laforge World goes live",
-        blurb: "Full public launch of Laforge World for everyone.",
+        title: "Forge World goes live",
+        blurb: "Full public launch of Forge World for everyone.",
       },
     ],
     disclaimer: "Roadmap items are directional and may shift as development progresses.",
@@ -703,12 +706,12 @@ const en = {
     back: "← Back to dashboard",
     title: "How The Forge works",
     subtitle:
-      "A plain-English guide to staking on The Forge — how you earn, why holding longer pays more, how holding the Laforge token cuts the launch fee, and how referrals pay. No jargon required.",
+      "A plain-English guide to staking on The Forge — how you earn, why holding longer pays more, how holding the Forge token cuts the launch fee, and how referrals pay. No jargon required.",
     tldr: "The 30-second version",
     t1: "You lock (“stake”) your tokens into a shared pool and earn rewards every {n} minutes.",
     t2: "The longer you keep them staked, the bigger your rewards grow — up to {n}×.",
     t3: "Rewards are split among everyone in the pool by their share, so your cut depends on how much you stake and how long you’ve held.",
-    t4: "Hold the Laforge token (launching on pump.fun) and the launch fee drops — 5% at 10k, up to 30% at 10M.",
+    t4: "Hold the Forge token (launching on pump.fun) and the launch fee drops — 5% at 10k, up to 30% at 10M.",
     t5: "Anyone can spin up their own staking contract — you pick the token, the tier, and the stake length (up to {n} days), and LaForge deploys a dedicated pool for it.",
     t6: "Share a referral link and earn 10–30% of the launch fee when someone creates a pool through you. Two more hops, then it stops.",
     previewTitle: "Preview a pool dashboard",
@@ -749,7 +752,7 @@ const en = {
       "Missed Marketing at launch? Anyone can pay the Marketing fee ({fee} ETH on Robinhood / Ethereum) anytime on the pool page. That is a community boost, not a stake. It unlocks banner and socials for the operator and a 12-hour trending slot. Paying again extends trending. The verified badge stays with the operator. The original on-chain launch tier does not change.",
     holdTitle: "Holder discounts",
     holdP:
-      "Hold the Laforge token — launching on pump.fun — in the same wallet you create a pool from. The factory reads that balance in the create transaction and cuts the launch fee. No ticker yet; the CA lands here when it mints.",
+      "Hold the Forge token — launching on pump.fun — in the same wallet you create a pool from. The factory reads that balance in the create transaction and cuts the launch fee. No ticker yet; the CA lands here when it mints.",
     holdAmt: "Tokens held",
     holdOff: "Launch-fee discount",
     holdNote:
@@ -896,13 +899,13 @@ const zh = {
     faqs: "常见问题",
     samples: "示例",
     createStake: "创建质押",
-    backLanding: "Laforge — 仪表盘",
+    backLanding: "Forge — 仪表盘",
     stakingTerminal: "质押终端",
     openMenu: "打开菜单",
     closeMenu: "关闭菜单",
   },
   landing: {
-    kicker: "Laforge",
+    kicker: "Forge",
     staking: "质押",
     nexus: "枢纽",
     and: "与",
@@ -921,6 +924,8 @@ const zh = {
     holderTitle: "矿池负责发放。你只需领取。",
     holderBody:
       "持仓奖励由矿池收集并按质押份额拆分。质押者只需领取。覆盖主流发射台：pump.fun、Pons、StonkFun。",
+    worldTitle: "世界熔炉",
+    worldBody: "Forge 是多链平台。同一张台子创建矿池、质押、领取，矿池在罗宾汉链或以太坊上都一样。",
     stepsKicker: "五步",
     step1: "创建",
     step1d: "发起一个矿池。",
@@ -990,7 +995,7 @@ const zh = {
     treasuryInvalidBody:
       "你输入的国库不是有效的 0x 地址。在提供有效地址或清空该字段以创建免税池之前，质押/解押税率无法填写。",
     noTreasury: "未设置国库 — 你不会从该池获得任何代币。在设置可接收该代币的有效国库之前，质押/解押税保持 0%。",
-    treasuryOk: "质押/解押税只会打到这个地址。它不是当前连接的钱包，也不是 Laforge 的启动费收款地址。",
+    treasuryOk: "质押/解押税只会打到这个地址。它不是当前连接的钱包，也不是 Forge 的启动费收款地址。",
     important: "重要：",
     taxFlow:
       "质押和解押税先扣入矿池，再发放到你的国库。领取奖励不收税。每次质押/解押后应用会自动发起发放（需第二次钱包确认）。任何人也可以在矿池页点击“将税费发送到国库”。请使用能接收该 ERC-20 的钱包或合约。",
@@ -1174,7 +1179,7 @@ const zh = {
       "精简展示——尚无横幅或社交。任何人都可以用营销加持解锁运营方品牌展示和 12 小时热门位。",
     taxesWaiting: "待发放到国库的税费",
     taxesBody:
-      "本池中有 {amount} {symbol} 来自质押/解押税。领取奖励不收税。这笔款项会打到建池时设置的地址 — {dest} — 不是运营方，也不是 Laforge 的启动费钱包。",
+      "本池中有 {amount} {symbol} 来自质押/解押税。领取奖励不收税。这笔款项会打到建池时设置的地址 — {dest} — 不是运营方，也不是 Forge 的启动费钱包。",
     sendTaxes: "将税费发送到国库",
     sending: "发送中…",
     sent: "已发送到国库 {dest}。",
@@ -1383,15 +1388,15 @@ const zh = {
   },
   roadmap: {
     title: "路线图",
-    intro: "从代币上线到 Laforge World 正式开放，按顺序推进。",
+    intro: "从代币上线到 Forge World 正式开放，按顺序推进。",
     progress: "进度",
     done: "已完成",
     active: "进行中",
     upcoming: "即将到来",
     items: [
       {
-        title: "部署 Laforge 原生代币",
-        blurb: "铸造并上线 Laforge 原生代币——驱动每个质押池的奖励资产。",
+        title: "部署 Forge 原生代币",
+        blurb: "铸造并上线 Forge 原生代币——驱动每个质押池的奖励资产。",
       },
       {
         title: "罗宾汉 EVM 质押",
@@ -1409,16 +1414,16 @@ const zh = {
       },
       { title: "即将公布", blurb: "公告即将发布" },
       {
-        title: "Laforge World 试玩",
+        title: "Forge World 试玩",
         blurb: "开放内部试玩，验证核心玩法与集成。",
       },
       {
-        title: "Laforge World 公测",
+        title: "Forge World 公测",
         blurb: "扩大到公开测试——更广访问、负载测试，以及上线前的社区反馈。",
       },
       {
-        title: "Laforge World 正式上线",
-        blurb: "Laforge World 向所有人全面开放。",
+        title: "Forge World 正式上线",
+        blurb: "Forge World 向所有人全面开放。",
       },
     ],
     disclaimer: "路线图仅作方向参考，会随开发进度调整。",
@@ -1472,12 +1477,12 @@ const zh = {
   docs: {
     back: "← 返回控制台",
     title: "熔炉如何运作",
-    subtitle: "用白话讲解熔炉上的质押——如何赚钱、为何持有越久收益越高、持有 Laforge 代币如何减免启动费，以及推荐如何分成。",
+    subtitle: "用白话讲解熔炉上的质押——如何赚钱、为何持有越久收益越高、持有 Forge 代币如何减免启动费，以及推荐如何分成。",
     tldr: "30 秒版",
     t1: "你把代币锁进（「质押」）共享矿池，每隔 {n} 分钟获得一次奖励。",
     t2: "持有越久，奖励越大——最高 {n} 倍。",
     t3: "奖励按份额分给池内所有人，所以你的分成取决于质押多少、持有多久。",
-    t4: "持有 Laforge 代币（将在 pump.fun 上线）可减免启动费——1 万枚减 5%，最高 1000 万枚减 30%。",
+    t4: "持有 Forge 代币（将在 pump.fun 上线）可减免启动费——1 万枚减 5%，最高 1000 万枚减 30%。",
     t5: "任何人都可以创建自己的质押合约——选择代币、档位和质押时长（最长 {n} 天），LaForge 会为它部署专属矿池。",
     t6: "分享推荐链接，有人通过你创建矿池时，你拿走启动费的 10–30%。再两层，然后停止。",
     previewTitle: "预览矿池仪表盘",
@@ -1517,7 +1522,7 @@ const zh = {
       "上线时错过营销档？任何人都可以随时在矿池页支付营销费（罗宾汉/以太坊为 {fee} ETH）。这是社区加持，不是质押。它为运营方解锁横幅和社交，并获得 12 小时热门位。再次支付可延长热门。已验证徽章仍属于运营方。链上原始启动档位不会改变。",
     holdTitle: "持仓折扣",
     holdP:
-      "在创建矿池的同一钱包里持有 Laforge 代币（将在 pump.fun 上线）。工厂在创建交易里读取余额并减免启动费。尚无合约地址；铸造后会写在这里。",
+      "在创建矿池的同一钱包里持有 Forge 代币（将在 pump.fun 上线）。工厂在创建交易里读取余额并减免启动费。尚无合约地址；铸造后会写在这里。",
     holdAmt: "持有数量",
     holdOff: "启动费折扣",
     holdNote:
@@ -1652,13 +1657,13 @@ const hi = {
     faqs: "सवाल",
     samples: "सैंपल",
     createStake: "स्टेक बनाएँ",
-    backLanding: "Laforge — डैशबोर्ड",
+    backLanding: "Forge — डैशबोर्ड",
     stakingTerminal: "स्टेकिंग टर्मिनल",
     openMenu: "मेनू खोलें",
     closeMenu: "मेनू बंद करें",
   },
   landing: {
-    kicker: "Laforge",
+    kicker: "Forge",
     staking: "स्टेकिंग ",
     nexus: "नेक्सस",
     and: " और ",
@@ -1677,6 +1682,9 @@ const hi = {
     holderTitle: "पूल संभालता है। तुम्हें सिर्फ़ क्लेम करना है।",
     holderBody:
       "होल्डर रिवॉर्ड पूल इकट्ठा करके बाँटता है। स्टेकर्स को सिर्फ़ क्लेम करना होता है। pump.fun, Pons और StonkFun जैसे बड़े लॉन्चपैड शामिल हैं।",
+    worldTitle: "द वर्ल्ड फ़ोर्ज",
+    worldBody:
+      "Forge मल्टीचेन प्लेटफ़ॉर्म है। एक ही डेस्क से पूल बनाओ, स्टेक करो और क्लेम करो — रॉबिनहुड हो या एथेरियम।",
     stepsKicker: "पाँच कदम",
     step1: "बनाओ",
     step1d: "एक पूल लॉन्च करो।",
@@ -1788,12 +1796,12 @@ const hi = {
     title: "डॉक्स",
     back: "← डैशबोर्ड पर वापस",
     subtitle:
-      "स्टेकिंग, होल्डर डिस्काउंट और रेफ़रल — साधारण भाषा में। Laforge टोकन pump.fun पर लॉन्च होगा।",
-    t4: "Laforge टोकन होल्ड करो (pump.fun पर लॉन्च) और लॉन्च फ़ीस कम — 10k पर 5%, 10M पर 30% तक।",
+      "स्टेकिंग, होल्डर डिस्काउंट और रेफ़रल — साधारण भाषा में। Forge टोकन pump.fun पर लॉन्च होगा।",
+    t4: "Forge टोकन होल्ड करो (pump.fun पर लॉन्च) और लॉन्च फ़ीस कम — 10k पर 5%, 10M पर 30% तक।",
     t6: "रेफ़रल लिंक शेयर करो। कोई तुम्हारे ज़रिए पूल बनाए तो लॉन्च फ़ीस का 10–30% मिलता है। दो और हॉप, फिर रुक।",
     holdTitle: "होल्डर डिस्काउंट",
     holdP:
-      "जिस वॉलेट से पूल बनाते हो उसी में Laforge टोकन होल्ड करो — pump.fun पर लॉन्च होगा। फ़ैक्टरी उसी ट्रांज़ैक्शन में बैलेंस पढ़कर लॉन्च फ़ीस काटती है। अभी CA नहीं; मिंट के बाद यहाँ आएगा।",
+      "जिस वॉलेट से पूल बनाते हो उसी में Forge टोकन होल्ड करो — pump.fun पर लॉन्च होगा। फ़ैक्टरी उसी ट्रांज़ैक्शन में बैलेंस पढ़कर लॉन्च फ़ीस काटती है। अभी CA नहीं; मिंट के बाद यहाँ आएगा।",
     holdAmt: "होल्ड किए टोकन",
     holdOff: "लॉन्च-फ़ीस छूट",
     holdNote:

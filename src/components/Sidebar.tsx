@@ -143,13 +143,13 @@ export function Sidebar() {
       >
         <img
           src="/icon2_nobg.png"
-          alt="Laforge"
+          alt="Forge"
           width={36}
           height={36}
           className="w-9 h-9 rounded-lg"
         />
         <div>
-          <div className="text-sm font-semibold tracking-tight text-hi">Laforge</div>
+          <div className="text-sm font-semibold tracking-tight text-hi">Forge</div>
           <div className="label-term !text-[9px]">{t("nav.stakingTerminal")}</div>
         </div>
       </Link>

@@ -14,17 +14,17 @@ type Checkpoint = {
 };
 
 /**
- * Product roadmap for Laforge. Six sequential checkpoints from token launch
- * through the public release of Laforge World. Status drives the visual state
+ * Product roadmap for Forge. Six sequential checkpoints from token launch
+ * through the public release of Forge World. Status drives the visual state
  * of each node — completed, in-progress, or upcoming.
  */
 const CHECKPOINTS: Checkpoint[] = [
   {
     n: 1,
-    title: "Deploy Laforge native token",
+    title: "Deploy Forge native token",
     icon: "/icon2_nobg.png",
     blurb:
-      "Mint and launch the Laforge native token — the reward asset that powers every staking pool.",
+      "Mint and launch the Forge native token — the reward asset that powers every staking pool.",
     status: "done",
   },
   {
@@ -45,15 +45,15 @@ const CHECKPOINTS: Checkpoint[] = [
   },
   {
     n: 4,
-    title: "Laforge World play test",
+    title: "Forge World play test",
     icon: "🎮",
     blurb:
-      "Open an internal play test of Laforge World to validate core gameplay and integrations.",
+      "Open an internal play test of Forge World to validate core gameplay and integrations.",
     status: "upcoming",
   },
   {
     n: 5,
-    title: "Laforge World beta test",
+    title: "Forge World beta test",
     icon: "🧪",
     blurb:
       "Expand to a public beta — wider access, load testing, and community feedback before launch.",
@@ -61,10 +61,10 @@ const CHECKPOINTS: Checkpoint[] = [
   },
   {
     n: 6,
-    title: "Laforge World goes live",
+    title: "Forge World goes live",
     icon: "🚀",
     blurb:
-      "Full public launch of Laforge World for everyone.",
+      "Full public launch of Forge World for everyone.",
     status: "upcoming",
   },
 ];
@@ -94,7 +94,7 @@ export default function RoadmapPage() {
                     Roadmap
                   </h1>
                   <p className="text-mid mt-2 leading-relaxed">
-                    The path from token launch to Laforge World going live — six checkpoints,
+                    The path from token launch to Forge World going live — six checkpoints,
                     shipped in order.
                   </p>
                 </div>

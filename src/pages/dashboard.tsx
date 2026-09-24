@@ -1,7 +1,7 @@
 import { TerminalShell } from "@/components/TerminalShell";
 import { HeroMetrics } from "@/components/HeroMetrics";
 import { StakingHero } from "@/components/StakingHero";
-import { PositionStrip } from "@/components/PositionStrip";
+import { WorldForgeCard } from "@/components/WorldForgeCard";
 import { CreatePoolButton } from "@/components/CreatePoolButton";
 import { PoolDirectory } from "@/components/PoolDirectory";
 import { ChainSwitch } from "@/components/ChainSwitch";
@@ -9,7 +9,6 @@ import { PoolSearch } from "@/components/PoolSearch";
 import { ImmutableStakeCard } from "@/components/ImmutableStakeCard";
 import { OfficialLinks } from "@/components/OfficialLinks";
 import { ReferralCard } from "@/components/ReferralCard";
-import { ConnectWithX } from "@/components/ConnectWithX";
 import { WalletButton } from "@/components/WalletButton";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -32,7 +31,6 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap lg:pr-[7.5rem]">
                 <div className="flex items-center gap-1.5">
-                  <ConnectWithX />
                   <LanguageToggle />
                   <ThemeToggle />
                 </div>
@@ -99,7 +97,7 @@ export default function Home() {
               </div>
             </section>
 
-            <PositionStrip />
+            <WorldForgeCard />
 
             <PoolDirectory />
 

@@ -1,6 +1,6 @@
 {
-  "name": "Laforge",
-  "short_name": "Laforge",
+  "name": "Forge",
+  "short_name": "Forge",
   "description": "A premium DeFi staking terminal.",
   "start_url": "/",
   "display": "standalone",

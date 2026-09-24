@@ -4,7 +4,7 @@
  * - CSP `frame-src` / `child-src` allow Privy’s iframe (auth.privy.io / *.privy.io)
  *   plus WalletConnect / Cloudflare Turnstile.
  * - CSP `frame-ancestors 'none'` + `X-Frame-Options: DENY` stop other sites
- *   from embedding Laforge (clickjacking).
+ *   from embedding Forge (clickjacking).
  *
  * @see https://docs.privy.io/security/implementation-guide/content-security-policy
  */
