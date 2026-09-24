@@ -5,6 +5,7 @@ import { ChainProvider } from "@/components/ChainProvider";
 import { WalletContextProvider } from "@/components/WalletProvider";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { ThemeBoot } from "@/components/ThemeToggle";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import appCss from "../styles.css?url";
 
@@ -42,12 +43,19 @@ function RootDocument() {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('laforge.theme')==='night')document.documentElement.dataset.theme='night'}catch(e){}",
+          }}
+        />
       </head>
       <body
         className="min-h-screen antialiased"
         style={{ fontFamily: "var(--font-sans, system-ui, sans-serif)" }}
       >
         <PreviewHostBridge />
+        <ThemeBoot />
         <AuthProvider>
           <LanguageProvider>
             <WalletContextProvider>

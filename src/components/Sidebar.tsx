@@ -6,6 +6,7 @@ import { CreatePoolButton } from "@/components/CreatePoolButton";
 import { useChain } from "@/components/ChainProvider";
 import { useI18n } from "@/components/LanguageProvider";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type IconProps = { className?: string };
 
@@ -203,7 +204,10 @@ export function Sidebar() {
 
         <ChainSwitch />
 
-        <LanguageToggle />
+        <div className="flex items-center gap-1.5">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
 
         <WalletButton className="!w-full w-full" />
       </div>

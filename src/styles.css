@@ -627,6 +627,142 @@ html[lang="hi"] h4 {
   --trending-ticker-h: 0px;
 }
 
+/* Black and gold. Same layout, inverted surfaces, gold kept as the accent. */
+html[data-theme="night"] {
+  color-scheme: dark;
+  --obsidian-000: #090807;
+  --obsidian-050: #100e0b;
+  --obsidian-100: #16130f;
+  --obsidian-150: #1c1914;
+  --obsidian-200: #242018;
+  --obsidian-300: #2e2920;
+  --hairline: rgba(232, 197, 106, 0.22);
+  --hairline-strong: rgba(232, 197, 106, 0.38);
+  --neon-gold: #f0d48a;
+  --neon-gold-soft: #e8c56a;
+  --amber: #e8c56a;
+  --amber-deep: #f6e2a8;
+  --text-hi: #f8f1de;
+  --text-mid: #e2d2b4;
+  --text-lo: #c4ae86;
+  --pos: #3ddc97;
+}
+
+html[data-theme="night"] body {
+  background-color: #090807;
+  color: var(--text-hi);
+}
+
+html[data-theme="night"] .terminal-root {
+  background:
+    radial-gradient(1100px 560px at 80% -8%, rgba(232, 197, 106, 0.14), transparent 58%),
+    radial-gradient(800px 480px at 0% 100%, rgba(169, 120, 18, 0.12), transparent 55%),
+    #090807;
+  color: var(--text-hi);
+}
+
+html[data-theme="night"] .glass {
+  background: linear-gradient(160deg, rgba(32, 27, 18, 0.94) 0%, rgba(16, 14, 11, 0.92) 100%);
+  border-color: rgba(232, 197, 106, 0.24);
+  box-shadow:
+    0 1px 0 0 rgba(255, 236, 190, 0.08) inset,
+    0 24px 48px -28px rgba(0, 0, 0, 0.75);
+}
+
+html[data-theme="night"] .glass::after {
+  background: linear-gradient(to bottom, rgba(255, 220, 140, 0.07), transparent);
+}
+
+html[data-theme="night"] .glass-gold {
+  border-color: rgba(232, 197, 106, 0.45);
+  box-shadow:
+    0 1px 0 0 rgba(255, 236, 190, 0.12) inset,
+    0 0 0 1px rgba(232, 197, 106, 0.12),
+    0 24px 60px -24px rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme="night"] .hero-title-gold {
+  background: linear-gradient(90deg, #f6e2a8 0%, #fff6d4 42%, #e8c56a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme="night"] .nav-item:hover {
+  background: rgba(232, 197, 106, 0.08);
+}
+
+html[data-theme="night"] .nav-item.active {
+  color: #f6e2a8;
+  background: linear-gradient(90deg, rgba(232, 197, 106, 0.16), transparent);
+  border-color: rgba(232, 197, 106, 0.32);
+}
+
+html[data-theme="night"] .input-term,
+html[data-theme="night"] .pill {
+  background: rgba(232, 197, 106, 0.06);
+}
+
+html[data-theme="night"] .chain-fan {
+  background: linear-gradient(180deg, rgba(28, 24, 16, 0.98), rgba(14, 12, 10, 0.96));
+  box-shadow:
+    0 1px 0 0 rgba(255, 236, 190, 0.08) inset,
+    0 0 0 1px rgba(232, 197, 106, 0.28),
+    0 18px 40px -16px rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme="night"] .chain-fan::before {
+  background: #1c1810;
+}
+
+html[data-theme="night"] .forge-burger,
+html[data-theme="night"] .forge-burger.is-open {
+  color: #f6e2a8;
+  background: radial-gradient(120% 90% at 30% 15%, #2a2418, #12100c);
+  box-shadow:
+    0 0 0 1px rgba(232, 197, 106, 0.45),
+    0 10px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="night"] .bg-white {
+  background-color: #16130f;
+  color: var(--text-hi);
+}
+
+html[data-theme="night"] .bg-black\/\[0\.02\],
+html[data-theme="night"] .bg-black\/\[0\.03\],
+html[data-theme="night"] .bg-black\/\[0\.04\],
+html[data-theme="night"] .bg-black\/\[0\.06\],
+html[data-theme="night"] .bg-black\/\[0\.08\],
+html[data-theme="night"] .bg-black\/10,
+html[data-theme="night"] .hover\:bg-black\/\[0\.02\]:hover,
+html[data-theme="night"] .hover\:bg-black\/\[0\.04\]:hover,
+html[data-theme="night"] .hover\:bg-black\/\[0\.05\]:hover,
+html[data-theme="night"] .hover\:bg-black\/\[0\.06\]:hover,
+html[data-theme="night"] .hover\:bg-black\/\[0\.07\]:hover {
+  background-color: rgba(232, 197, 106, 0.08);
+}
+
+html[data-theme="night"] .border-black\/8,
+html[data-theme="night"] .border-black\/10,
+html[data-theme="night"] .border-black\/15,
+html[data-theme="night"] .border-black\/20,
+html[data-theme="night"] .border-black\/\[0\.06\],
+html[data-theme="night"] .border-black\/\[0\.08\],
+html[data-theme="night"] .hover\:border-black\/20:hover,
+html[data-theme="night"] .hover\:border-black\/25:hover {
+  border-color: rgba(232, 197, 106, 0.28);
+}
+
+html[data-theme="night"] ::-webkit-scrollbar-track {
+  background: #12100c;
+}
+html[data-theme="night"] ::-webkit-scrollbar-thumb {
+  background: rgba(232, 197, 106, 0.45);
+}
+
+
 .trending-ticker {
   position: fixed;
   top: 0;
