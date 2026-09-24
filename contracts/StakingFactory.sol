@@ -12,9 +12,11 @@ import {StakingPool} from "./StakingPool.sol";
 ///
 /// Launch fee (per tier) is priced in the same transaction:
 /// 1. Holder discount from `MEMBERSHIP_TOKEN` balance (0–30%).
-/// 2. Direct referral: 10–30% of the discounted fee, pull-paid to `referrer`.
+/// 2. Direct referral: 10–30% of the discounted fee. The first referrer is
+///    saved on the launcher and is paid on every later launch, even if a
+///    different referrer is passed or none is.
 /// 3. Indirect override: 5% of the direct commission, pull-paid to the
-///    referrer's bound parent (`referredBy[referrer]`). Depth stops at 2.
+///    referrer's bound parent (`referredBy[referrer]`). Hop 3 is 2% of that.
 /// 4. Remainder goes to `FEE_RECIPIENT`.
 contract StakingFactory is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -72,6 +74,8 @@ contract StakingFactory is ReentrancyGuard {
     mapping(address => address) public referredBy;
     mapping(address => address[]) private _directs;
     mapping(address => mapping(address => uint256)) public earnedFrom;
+    /// Hop-2 fees `beneficiary` has received from `launcher` (an indirect under a direct).
+    mapping(address => mapping(address => uint256)) public hop2Earned;
 
     function feeForTier(Tier tier) public view returns (uint256) {
         if (tier == Tier.Bronze) return BRONZE_FEE;
@@ -136,7 +140,7 @@ contract StakingFactory is ReentrancyGuard {
         baseFee = feeForTier(tier);
         discountBps = holderDiscountBps(launcher);
         userPays = baseFee - (baseFee * discountBps) / BPS_DENOM;
-        referrerUsed = (referrer == address(0) || referrer == launcher) ? address(0) : referrer;
+        referrerUsed = _resolveReferrer(launcher, referrer);
         if (referrerUsed != address(0)) {
             commissionBps = referralCommissionBps(referralCount[referrerUsed]);
             commission = (userPays * commissionBps) / BPS_DENOM;
@@ -195,8 +199,6 @@ contract StakingFactory is ReentrancyGuard {
     error FeeRecipientIsDeployer();
     error ZeroMinStake();
     error NothingOwed();
-    error BadReferrer();
-    error AlreadyBound();
 
     function createPool(
         IERC20 token,
@@ -225,14 +227,6 @@ contract StakingFactory is ReentrancyGuard {
     ) external payable nonReentrant returns (address pool) {
         pool = _deployPool(token, treasury, durationDays, stakeTaxBps, unstakeTaxBps, fundingAmount, minStake, tier);
         _takeLaunchFee(tier, referrer);
-    }
-
-    /// Bind a parent once. Lets someone who has not launched yet sit as an upline.
-    function bindReferrer(address parent) external {
-        if (parent == address(0) || parent == msg.sender) revert BadReferrer();
-        if (referredBy[msg.sender] != address(0)) revert AlreadyBound();
-        referredBy[msg.sender] = parent;
-        emit ReferrerBound(msg.sender, parent);
     }
 
     function claimReferral() external nonReentrant {
@@ -304,7 +298,7 @@ contract StakingFactory is ReentrancyGuard {
         uint256 paid = quoteLaunchFee(msg.sender, tier);
         if (msg.value != paid) revert BadLaunchFee();
 
-        address direct = (referrer == address(0) || referrer == msg.sender) ? address(0) : referrer;
+        address direct = _resolveReferrer(msg.sender, referrer);
         uint256 comm;
         uint256 hop2Amt;
         uint256 hop3Amt;
@@ -323,8 +317,10 @@ contract StakingFactory is ReentrancyGuard {
             referralCount[direct] = n;
             emit ReferralAccrued(direct, comm, n);
 
+            // Written only after this create succeeds with someone else's link.
             if (referredBy[msg.sender] == address(0)) {
                 referredBy[msg.sender] = direct;
+                emit ReferrerBound(msg.sender, direct);
             }
 
             hop2 = referredBy[direct];
@@ -333,6 +329,7 @@ contract StakingFactory is ReentrancyGuard {
                 if (hop2Amt > 0) {
                     owedToReferrer[hop2] += hop2Amt;
                     lifetimeEarned[hop2] += hop2Amt;
+                    hop2Earned[hop2][msg.sender] += hop2Amt;
                     emit IndirectAccrued(hop2, direct, msg.sender, hop2Amt);
                 }
                 hop3 = referredBy[hop2];
@@ -354,6 +351,14 @@ contract StakingFactory is ReentrancyGuard {
             (bool ok,) = FEE_RECIPIENT.call{value: proto}("");
             if (!ok) revert FeeTransferFailed();
         }
+    }
+
+    /// Saved parent wins. A later link, or no link, cannot replace them.
+    function _resolveReferrer(address launcher, address referrer) internal view returns (address) {
+        address bound = referredBy[launcher];
+        if (bound != address(0) && bound != launcher) return bound;
+        if (referrer == address(0) || referrer == launcher) return address(0);
+        return referrer;
     }
 
     function _eligibleHop(address candidate, address launcher, address hop1, address hop2)

@@ -243,7 +243,7 @@ const en = {
   referral: {
     title: "Referral desk",
     blurb:
-      "Share your link. Direct: 10% of the launch fee, +1% per extra launch, cap 30%. Hop 2 (your upline) gets 5% of that commission. Hop 3 gets 2% of hop 2. Then it stops. Nobody’s cut is reduced — overrides come from the protocol remainder.",
+      "Share your link. Direct: 10% of the launch fee, +1% per extra launch, cap 30%. The first referrer is saved on that wallet and is paid on every later pool, even from another browser or another link. Hop 2 (your upline) gets 5% of that commission. Hop 3 gets 2% of hop 2. Then it stops. Nobody’s cut is reduced — overrides come from the protocol remainder.",
     connect: "Connect a wallet to copy your referral link.",
     copy: "Copy",
     copied: "Copied",
@@ -252,6 +252,7 @@ const en = {
     claim: "Claim",
     claiming: "Claiming…",
     upline: "Upline",
+    unbound: "Saved only after you create a pool through someone else's link.",
     uplinePh: "Upline 0x… (optional, once)",
     bind: "Bind",
     binding: "Binding…",
@@ -270,6 +271,7 @@ const en = {
     listLabel: "Your referrals",
     listHint: "Addresses masked · lifetime from each",
     listEmpty: "No referred launches yet. Share the link. When they create a pool, they land here.",
+    hop2row: "Hop 2",
     pitch:
       "Someone launches a pool with your link. You take a slice of the launch fee they actually paid — after any holder discount. Bring closers, not a family tree.",
     hopsLabel: "Who gets paid",
@@ -290,7 +292,7 @@ const en = {
     override:
       "Overrides come off the protocol remainder. Nobody’s cut is skimmed. Claim whenever from the desk below.",
     hold: "Hold the token, launch cheaper. 10k → 5% off. 100k → 10%. 1M → 20%. 10M → 30%. Referrals pay on what they actually send.",
-    self: "You cannot refer yourself. Binding an upline is once. Cycles get skipped. We checked.",
+    self: "You cannot refer yourself. The link is saved only after that pool is created. Cycles get skipped. We checked.",
   },
   search: {
     label: "Search pools by contract address",
@@ -558,6 +560,7 @@ const en = {
     noInactive: "No inactive stakes yet.",
     connectTitle: "Connect your wallet",
     connectBody: "Connect to see the stakes for this account.",
+    loading: "Loading this wallet’s stakes…",
     emptyTitle: "No stakes yet",
     emptyBody: "Open a pool and stake to see it listed here.",
     updated: "Updated {when}",
@@ -596,6 +599,7 @@ const en = {
     claim: "Claim",
     connectBody:
       "History is private to the connected account. Connect to see your stakes, unstakes, and claims.",
+    loading: "Loading this wallet’s stakes and claims…",
     emptyBody:
       "Stake, unstake, or claim from a pool dashboard and the event will land here with the token image, name, and timestamp.",
     browse: "Browse pools",
@@ -752,7 +756,7 @@ const en = {
       "This only discounts the ETH/native fee to create a pool. Staking into a pool has no protocol fee — optional stake/unstake tax is set by the creator and is not discounted.",
     refTitle: "Earn through referrals",
     refP:
-      "Share your link (?ref=your-wallet). When someone creates a pool through it, you earn a slice of the launch fee they actually paid — after any holder discount. Direct starts at 10%, +1% per extra launch, cap 30%. Your upline (hop 2) gets 5% of your commission. Hop 3 gets 2% of hop 2. Then it stops. Overrides come from the protocol remainder — nobody’s cut is reduced. Claim from the referral desk.",
+      "Share your link (?ref=your-wallet). When someone creates a pool through it, you earn a slice of the launch fee they actually paid — after any holder discount. That wallet stays yours: every later pool they create pays you, even from another browser or someone else's link. Direct starts at 10%, +1% per extra launch, cap 30%. Your upline (hop 2) gets 5% of your commission. Hop 3 gets 2% of hop 2. Then it stops. Overrides come from the protocol remainder — nobody’s cut is reduced. Claim from the referral desk.",
     refCta: "Open the referral desk →",
     earnTitle: "How Stake Creators earn",
     earnP:
@@ -1039,7 +1043,7 @@ const zh = {
   referral: {
     title: "推荐台",
     blurb:
-      "分享你的链接。直推：启动费的 10%，每多一笔 +1%，最高 30%。第二层（上级）拿该佣金的 5%。第三层拿第二层的 2%。到此为止。不扣任何人的份额，加成从协议剩余里出。",
+      "分享你的链接。直推：启动费的 10%，每多一笔 +1%，最高 30%。第一位推荐人会记在该钱包上，之后每次建池都付给此人，换浏览器或换链接也不变。第二层（上级）拿该佣金的 5%。第三层拿第二层的 2%。到此为止。不扣任何人的份额，加成从协议剩余里出。",
     connect: "连接钱包后复制你的推荐链接。",
     copy: "复制",
     copied: "已复制",
@@ -1048,6 +1052,7 @@ const zh = {
     claim: "领取",
     claiming: "领取中…",
     upline: "上级",
+    unbound: "只有通过别人的链接成功建池后才会记下。",
     uplinePh: "上级 0x…（可选，仅一次）",
     bind: "绑定",
     binding: "绑定中…",
@@ -1066,6 +1071,7 @@ const zh = {
     listLabel: "你的推荐",
     listHint: "地址已遮蔽 · 各地址累计",
     listEmpty: "还没有成交。把链接发出去。对方创建矿池后会出现在这里。",
+    hop2row: "第二层",
     pitch:
       "有人用你的链接启动矿池。你拿走对方实付启动费的一份 — 已扣持仓折扣。带成交的人，别带家谱。",
     hopsLabel: "谁拿钱",
@@ -1086,7 +1092,7 @@ const zh = {
     override:
       "加成从协议剩余里出。不扣任何人的份额。随时在下方领取。",
     hold: "持币启动更便宜。1 万 → 减 5%。10 万 → 10%。100 万 → 20%。1000 万 → 30%。推荐按实付计算。",
-    self: "不能推荐自己。上级只能绑一次。成环会跳过。我们查过。",
+    self: "不能推荐自己。链接只在那次建池成功后记下。成环会跳过。我们查过。",
   },
   search: {
     label: "按合约地址搜索矿池",
@@ -1332,6 +1338,7 @@ const zh = {
     noInactive: "暂无已结束的质押。",
     connectTitle: "连接钱包",
     connectBody: "连接后即可查看该账户的质押。",
+    loading: "正在读取该钱包的质押…",
     emptyTitle: "还没有质押",
     emptyBody: "打开矿池并质押后会显示在这里。",
     updated: "更新于 {when}",
@@ -1367,6 +1374,7 @@ const zh = {
     unstake: "解押",
     claim: "领取",
     connectBody: "记录仅对当前连接账户可见。连接后即可查看质押、解押和领取。",
+    loading: "正在读取该钱包的质押和领取…",
     emptyBody: "从矿池仪表盘质押、解押或领取后，事件会带上代币图片、名称和时间出现在这里。",
     browse: "浏览矿池",
     timeline: "时间线",
@@ -1516,7 +1524,7 @@ const zh = {
       "只减免创建矿池时的原生币启动费。向矿池质押没有协议费——创建者设定的质押/解押税不会因此打折。",
     refTitle: "通过推荐赚钱",
     refP:
-      "分享你的链接（?ref=你的钱包）。有人通过它创建矿池时，你拿走对方实付启动费的一份——已扣持仓折扣。直推从 10% 起，每多一笔 +1%，最高 30%。上级（第二层）拿你佣金的 5%。第三层拿第二层的 2%。然后停止。加成从协议剩余出，不扣任何人的份额。在推荐台领取。",
+      "分享你的链接（?ref=你的钱包）。有人通过它创建矿池时，你拿走对方实付启动费的一份——已扣持仓折扣。该钱包此后每次建池都付给你，换浏览器或别人的链接也不变。直推从 10% 起，每多一笔 +1%，最高 30%。上级（第二层）拿你佣金的 5%。第三层拿第二层的 2%。然后停止。加成从协议剩余出，不扣任何人的份额。在推荐台领取。",
     refCta: "打开推荐台 →",
     earnTitle: "质押创建者如何赚钱",
     earnP: "创建者从启动时设置的质押税和解押税中获益。每一侧最高 {max}%，收取的税会打到你选择的国库地址：",
@@ -1699,7 +1707,7 @@ const hi = {
   referral: {
     title: "रेफ़रल डेस्क",
     blurb:
-      "लिंक शेयर करें। डायरेक्ट: लॉन्च फ़ीस का 10%, हर अतिरिक्त लॉन्च पर +1%, अधिकतम 30%। हॉप 2 को उस कमीशन का 5%। हॉप 3 को हॉप 2 का 2%। फिर रुक जाता है।",
+      "लिंक शेयर करें। डायरेक्ट: लॉन्च फ़ीस का 10%, हर अतिरिक्त लॉन्च पर +1%, अधिकतम 30%। पहला रेफ़रर उस वॉलेट पर बच जाता है और हर अगले पूल पर वही भुगतान पाता है, दूसरा ब्राउज़र या दूसरा लिंक भी। हॉप 2 को उस कमीशन का 5%। हॉप 3 को हॉप 2 का 2%। फिर रुक जाता है।",
     connect: "रेफ़रल लिंक कॉपी करने के लिए वॉलेट कनेक्ट करें।",
     copy: "कॉपी",
     copied: "कॉपी हो गया",
@@ -1708,6 +1716,7 @@ const hi = {
     claim: "क्लेम",
     claiming: "क्लेम हो रहा है…",
     upline: "अपलाइन",
+    unbound: "किसी और के लिंक से पूल बनने के बाद ही सेव होता है।",
     uplinePh: "अपलाइन 0x… (वैकल्पिक, एक बार)",
     bind: "बाइंड",
     binding: "बाइंड हो रहा है…",
@@ -1726,6 +1735,7 @@ const hi = {
     listLabel: "आपके रेफ़रल",
     listHint: "पते छिपे · प्रत्येक से लाइफ़टाइम",
     listEmpty: "अभी कोई रेफ़र लॉन्च नहीं। लिंक शेयर करें। जब वे पूल बनाएँगे, यहाँ दिखेगा।",
+    hop2row: "हॉप 2",
     hopsLabel: "किसे मिलता है",
     h1t: "आपने लिंक भेजा",
     h1p: "आपके ज़रिए पहला लॉन्च 10%। हर अगला +1%, अधिकतम 30%। यही स्टेक है।",
@@ -1743,7 +1753,7 @@ const hi = {
     theRest: "बाकी",
     override: "ओवरराइड प्रोटोकॉल के बचे हिस्से से आते हैं। किसी की कटाई नहीं कटती। नीचे से क्लेम करें।",
     hold: "टोकन होल्ड करो, लॉन्च सस्ता। 10k → 5% छूट। 100k → 10%। 1M → 20%। 10M → 30%.",
-    self: "खुद को रेफ़र नहीं कर सकते। अपलाइन एक बार बाइंड। साइकल स्किप। हमने चेक किया।",
+    self: "खुद को रेफ़र नहीं कर सकते। लिंक तभी सेव होता है जब वह पूल बन जाए। साइकल स्किप। हमने चेक किया।",
     pitch: "कोई आपके लिंक से पूल लॉन्च करे तो आपको उनकी असल चुकाई फ़ीस का हिस्सा मिलता है।",
   },
   search: {
@@ -1790,7 +1800,7 @@ const hi = {
       "यह सिर्फ़ पूल बनाने की नेटिव फ़ीस पर है। पूल में स्टेक करने पर प्रोटोकॉल फ़ीस नहीं।",
     refTitle: "रेफ़रल से कमाओ",
     refP:
-      "अपना लिंक शेयर करो (?ref=वॉलेट)। कोई उसके ज़रिए पूल बनाए तो तुम्हें उनकी असल चुकाई फ़ीस का हिस्सा मिलता है। डायरेक्ट 10% से, हर अगले पर +1%, अधिकतम 30%। हॉप 2 को 5%, हॉप 3 को हॉप 2 का 2%। फिर रुक। रेफ़रल डेस्क से क्लेम।",
+      "अपना लिंक शेयर करो (?ref=वॉलेट)। कोई उसके ज़रिए पूल बनाए तो तुम्हें उनकी असल चुकाई फ़ीस का हिस्सा मिलता है। वह वॉलेट बाद का हर पूल भी तुम्हें देता है, दूसरा ब्राउज़र या कोई और लिंक हो तब भी। डायरेक्ट 10% से, हर अगले पर +1%, अधिकतम 30%। हॉप 2 को 5%, हॉप 3 को हॉप 2 का 2%। फिर रुक। रेफ़रल डेस्क से क्लेम।",
     refCta: "रेफ़रल डेस्क खोलें →",
   },
   faqs: {

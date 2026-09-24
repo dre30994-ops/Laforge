@@ -19,7 +19,6 @@ export function ReferralCard({ lite = false }: { lite?: boolean } = {}) {
   const config = useConfig();
   const [copied, setCopied] = useState(false);
   const [desk, setDesk] = useState<{ count: bigint; owed: bigint; parent: string } | null>(null);
-  const [parentInput, setParentInput] = useState("");
   const [status, setStatus] = useState("");
 
   const load = useCallback(async () => {
@@ -54,9 +53,9 @@ export function ReferralCard({ lite = false }: { lite?: boolean } = {}) {
     }
   }
 
-  async function send(fn: "claimReferral" | "bindReferrer", args: readonly unknown[] = []) {
+  async function claim() {
     if (!address || !network.factory || !isAddress(network.factory)) return;
-    setStatus(fn === "claimReferral" ? t("referral.claiming") : t("referral.binding"));
+    setStatus(t("referral.claiming"));
     try {
       const walletClient = await getWalletClient(config, { chainId: network.chain.id });
       if (!walletClient) throw new Error("wallet");
@@ -65,11 +64,9 @@ export function ReferralCard({ lite = false }: { lite?: boolean } = {}) {
         chain: network.chain,
         address: getAddress(network.factory) as Hex,
         abi: STAKING_FACTORY_ABI,
-        functionName: fn,
-        args: args as never,
+        functionName: "claimReferral",
       });
       setStatus("");
-      setParentInput("");
       await load();
     } catch {
       setStatus("");
@@ -122,7 +119,7 @@ export function ReferralCard({ lite = false }: { lite?: boolean } = {}) {
               <button
                 type="button"
                 disabled={!desk || desk.owed === 0n}
-                onClick={() => void send("claimReferral")}
+                onClick={() => void claim()}
                 className="h-9 px-3 rounded-lg text-xs font-semibold text-white disabled:opacity-40"
                 style={{ background: "linear-gradient(180deg, #22c55e, #16a34a)" }}
               >
@@ -136,22 +133,7 @@ export function ReferralCard({ lite = false }: { lite?: boolean } = {}) {
               {t("referral.upline")}: <span className="font-mono text-hi">{shortAddress(parent)}</span>
             </p>
           ) : (
-            <div className="flex items-center gap-2">
-              <input
-                value={parentInput}
-                onChange={(e) => setParentInput(e.target.value)}
-                placeholder={t("referral.uplinePh")}
-                className="flex-1 min-w-0 h-10 px-3 rounded-lg bg-black/[0.03] border border-black/10 font-mono text-[11px] text-hi"
-              />
-              <button
-                type="button"
-                disabled={!isAddress(parentInput)}
-                onClick={() => void send("bindReferrer", [getAddress(parentInput)])}
-                className="h-10 px-3 rounded-lg text-xs font-semibold border border-black/10 disabled:opacity-40"
-              >
-                {status === t("referral.binding") ? status : t("referral.bind")}
-              </button>
-            </div>
+            <p className="text-xs text-lo">{t("referral.unbound")}</p>
           )}
         </div>
       )}

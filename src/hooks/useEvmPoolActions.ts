@@ -18,6 +18,7 @@ import {
   MOCK_DEMO_USER,
 } from "@/lib/mockPools";
 import { emitPoolsChanged } from "@/lib/poolEvents";
+import { recordActivity, upsertUserStake } from "@/lib/userLedger";
 
 type Status = "idle" | "pending" | "done" | "error";
 
@@ -78,6 +79,34 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
     ? ` Tax (if any) is released to the pool treasury ${taxDest}.`
     : " This pool has no treasury, so stake/unstake tax is 0.";
 
+  const note = useCallback(
+    (kind: "stake" | "unstake" | "claim", amount: string, txHash: string) => {
+      if (!address) return;
+      recordActivity({
+        address,
+        kind,
+        pool: pool.pool,
+        token: pool.token,
+        chainId: pool.chainId,
+        symbol: pool.symbol,
+        amount: amount || "—",
+        txHash,
+      });
+      if (kind !== "claim") {
+        upsertUserStake({
+          address,
+          pool: pool.pool,
+          token: pool.token,
+          chainId: pool.chainId,
+          symbol: pool.symbol,
+          amount: amount || "0",
+          active: kind === "stake",
+        });
+      }
+    },
+    [address, pool],
+  );
+
   const stake = useCallback(
     async (raw: string) => {
       const amount = parseAmount(raw);
@@ -93,10 +122,12 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
         }
         const wallet = await ensureWallet();
         if (!wallet) throw new Error("Connect an EVM wallet to stake.");
-        return stakeIntoPool(wallet, pool, network, amount);
+        const hash = await stakeIntoPool(wallet, pool, network, amount);
+        note("stake", raw, hash);
+        return hash;
       }, `Stake confirmed.${taxNote}`);
     },
-    [parseAmount, run, mock, pool, user, ensureWallet, network, taxNote],
+    [parseAmount, run, mock, pool, user, ensureWallet, network, taxNote, note],
   );
 
   const unstake = useCallback(
@@ -114,10 +145,12 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
         }
         const wallet = await ensureWallet();
         if (!wallet) throw new Error("Connect an EVM wallet to unstake.");
-        return unstakeFromPool(wallet, pool, network, amount);
+        const hash = await unstakeFromPool(wallet, pool, network, amount);
+        note("unstake", raw, hash);
+        return hash;
       }, `Unstake confirmed.${taxNote}`);
     },
-    [parseAmount, run, mock, pool, user, ensureWallet, network, taxNote],
+    [parseAmount, run, mock, pool, user, ensureWallet, network, taxNote, note],
   );
 
   const claim = useCallback(async () => {
@@ -128,9 +161,11 @@ export function useEvmPoolActions(pool: PoolSummary, network: EvmNetwork) {
       }
       const wallet = await ensureWallet();
       if (!wallet) throw new Error("Connect an EVM wallet to claim.");
-      return claimFromPool(wallet, pool, network);
+      const hash = await claimFromPool(wallet, pool, network);
+      note("claim", "", hash);
+      return hash;
     }, "Claim confirmed.");
-  }, [run, mock, pool, user, ensureWallet, network]);
+  }, [run, mock, pool, user, ensureWallet, network, note]);
 
   return {
     mock,

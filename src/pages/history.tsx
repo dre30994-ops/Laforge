@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useAccount } from "wagmi";
 import { WalletButton } from "@/components/WalletButton";
 import { TerminalShell } from "@/components/TerminalShell";
 import { useConnectedAccount } from "@/hooks/useConnectedAccount";
@@ -30,8 +31,11 @@ function fmtDateTime(ms: number): string {
 
 export default function HistoryPage() {
   const { t } = useI18n();
-  const { address, connected } = useConnectedAccount();
-  const { activity } = useUserLedger(address);
+  const { address: selected, connected: selectedOn } = useConnectedAccount();
+  const evm = useAccount();
+  const address = evm.address ?? (selectedOn ? selected : null);
+  const connected = Boolean(address);
+  const { activity, loading } = useUserLedger(address);
 
   return (
     <TerminalShell>
@@ -63,6 +67,8 @@ export default function HistoryPage() {
 
             {!connected ? (
               <ConnectPrompt />
+            ) : loading && activity.length === 0 ? (
+              <p className="glass p-8 text-center text-sm text-mid">{t("historyPage.loading")}</p>
             ) : activity.length === 0 ? (
               <EmptyState />
             ) : (
@@ -144,7 +150,7 @@ function ActivityLog({ events }: { events: ActivityItem[] }) {
                   </span>
                 </div>
                 <div className="label-term !text-[9px] !tracking-normal !normal-case truncate mt-0.5">
-                  {fmtDateTime(e.at)}
+                  {e.at > 0 ? fmtDateTime(e.at) : "—"}
                   {net ? ` · ${net.short}` : ""}
                 </div>
               </div>

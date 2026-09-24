@@ -194,14 +194,26 @@ export function ReferralLedger() {
         ) : !desk || desk.rows.length === 0 ? (
           <p className="px-5 py-8 text-sm text-mid">{t("refPage.listEmpty")}</p>
         ) : (
-          <ul className="max-h-72 overflow-y-auto divide-y divide-black/[0.06]">
+          <ul className="max-h-80 overflow-y-auto divide-y divide-black/[0.06]">
             {desk.rows.map((row) => (
-              <li
-                key={row.address}
-                className="flex items-center justify-between gap-3 px-5 py-3 text-sm"
-              >
-                <span className="font-mono text-hi">{shortAddress(row.address)}</span>
-                <span className="font-mono text-mid">{money(row.earned)}</span>
+              <li key={row.address} className="px-5 py-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-hi">{shortAddress(row.address)}</span>
+                  <span className="font-mono text-mid">{money(row.earned)}</span>
+                </div>
+                {row.hop2.length > 0 && (
+                  <ul className="mt-2 space-y-1.5 border-l border-black/10 ml-2 pl-3">
+                    {row.hop2.map((hop) => (
+                      <li key={hop.address} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="min-w-0">
+                          <span className="label-term !text-[9px] text-gold-700">{t("refPage.hop2row")}</span>
+                          <span className="font-mono text-mid ml-2">{shortAddress(hop.address)}</span>
+                        </span>
+                        <span className="font-mono text-mid shrink-0">{money(hop.earned)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useAccount } from "wagmi";
 import { TerminalShell } from "@/components/TerminalShell";
 import { WalletButton } from "@/components/WalletButton";
 import { ChainBadge } from "@/components/PoolDirectory";
@@ -15,8 +16,11 @@ import { useI18n } from "@/components/LanguageProvider";
  */
 export default function StakePage() {
   const { t } = useI18n();
-  const { address, connected } = useConnectedAccount();
-  const { stakes } = useUserLedger(address);
+  const { address: selected, connected: selectedOn } = useConnectedAccount();
+  const evm = useAccount();
+  const address = evm.address ?? (selectedOn ? selected : null);
+  const connected = Boolean(address);
+  const { stakes, loading } = useUserLedger(address);
   const active = stakes.filter((s) => s.active);
   const inactive = stakes.filter((s) => !s.active);
 
@@ -52,6 +56,8 @@ export default function StakePage() {
 
             {!connected ? (
               <ConnectPrompt />
+            ) : loading && stakes.length === 0 ? (
+              <p className="glass p-8 text-center text-sm text-mid">{t("stakePage.loading")}</p>
             ) : stakes.length === 0 ? (
               <EmptyState />
             ) : (

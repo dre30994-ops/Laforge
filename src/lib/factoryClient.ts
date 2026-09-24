@@ -138,6 +138,16 @@ export const STAKING_FACTORY_ABI = [
   },
   {
     type: "function",
+    name: "hop2Earned",
+    stateMutability: "view",
+    inputs: [
+      { name: "", type: "address" },
+      { name: "", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "referralCommissionBps",
     stateMutability: "view",
     inputs: [{ name: "referredCount", type: "uint256" }],
@@ -163,13 +173,6 @@ export const STAKING_FACTORY_ABI = [
     stateMutability: "view",
     inputs: [{ name: "", type: "address" }],
     outputs: [{ name: "", type: "address" }],
-  },
-  {
-    type: "function",
-    name: "bindReferrer",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "parent", type: "address" }],
-    outputs: [],
   },
   {
     type: "function",
@@ -418,6 +421,47 @@ export async function resolvePoolAddress(
   return addr;
 }
 
+/** On-chain parent, if this wallet was already bound. Null when unset or the factory is old. */
+export async function readBoundReferrer(
+  network: EvmNetwork,
+  launcher: string,
+): Promise<string | null> {
+  if (!network.factory || !isAddress(network.factory) || !isAddress(launcher)) return null;
+  try {
+    const parent = (await getPublicClient(network).readContract({
+      address: getAddress(network.factory) as Hex,
+      abi: STAKING_FACTORY_ABI,
+      functionName: "referredBy",
+      args: [getAddress(launcher) as Hex],
+    })) as string;
+    if (!parent || !isAddress(parent) || parent.toLowerCase() === ZERO_ADDR) return null;
+    if (getAddress(parent) === getAddress(launcher)) return null;
+    return getAddress(parent);
+  } catch {
+    return null;
+  }
+}
+
+/** Saved parent beats a later link. Falls back to the link when nothing is bound. */
+export async function preferSavedReferrer(
+  network: EvmNetwork,
+  launcher: string | null | undefined,
+  link?: string | null,
+): Promise<string | null> {
+  if (launcher && isAddress(launcher)) {
+    const bound = await readBoundReferrer(network, launcher);
+    if (bound) return bound;
+  }
+  if (
+    link &&
+    isAddress(link) &&
+    (!launcher || !isAddress(launcher) || getAddress(link) !== getAddress(launcher))
+  ) {
+    return getAddress(link);
+  }
+  return null;
+}
+
 export async function quoteLaunch(
   network: EvmNetwork,
   launcher: string,
@@ -440,9 +484,10 @@ export async function quoteLaunch(
     v2: false,
   };
   if (!network.factory || !isAddress(network.factory) || !isAddress(launcher)) return fallback;
+  const preferred = await preferSavedReferrer(network, launcher, referrer);
   const ref =
-    referrer && isAddress(referrer) && getAddress(referrer) !== getAddress(launcher)
-      ? getAddress(referrer)
+    preferred && isAddress(preferred) && getAddress(preferred) !== getAddress(launcher)
+      ? getAddress(preferred)
       : ZERO_ADDR;
   try {
     const client = getPublicClient(network);
@@ -496,6 +541,7 @@ export function directSplitBps(referredCount: bigint | number): number {
 export type ReferralRow = {
   address: string;
   earned: bigint;
+  hop2: { address: string; earned: bigint }[];
 };
 
 export type ReferralDesk = {
@@ -563,8 +609,37 @@ export async function readReferralDesk(
         ),
       );
       directs.forEach((addr, i) => {
-        rows.push({ address: getAddress(addr), earned: earned[i] ?? 0n });
+        rows.push({ address: getAddress(addr), earned: earned[i] ?? 0n, hop2: [] });
       });
+      await Promise.all(
+        rows.map(async (row) => {
+          try {
+            const kids = (await client.readContract({
+              address: factory,
+              abi: STAKING_FACTORY_ABI,
+              functionName: "directsOf",
+              args: [row.address as Hex],
+            })) as readonly string[];
+            if (!kids?.length) return;
+            const amounts = await Promise.all(
+              kids.map(
+                (kid) =>
+                  client.readContract({
+                    address: factory,
+                    abi: STAKING_FACTORY_ABI,
+                    functionName: "hop2Earned",
+                    args: [who, getAddress(kid) as Hex],
+                  }) as Promise<bigint>,
+              ),
+            );
+            row.hop2 = kids
+              .map((kid, i) => ({ address: getAddress(kid), earned: amounts[i] ?? 0n }))
+              .filter((hop) => hop.earned > 0n);
+          } catch {
+            row.hop2 = [];
+          }
+        }),
+      );
       rows.sort((a, b) => (a.earned === b.earned ? 0 : a.earned > b.earned ? -1 : 1));
     }
     return {
@@ -645,11 +720,9 @@ export async function createPool(
   const factory = getAddress(network.factory) as Hex;
   const tokenAddr = getAddress(i.token) as Hex;
   const publicClient = getPublicClient(network);
-  const referrer =
-    i.referrer && isAddress(i.referrer) && getAddress(i.referrer) !== getAddress(account.address)
-      ? (getAddress(i.referrer) as Hex)
-      : (ZERO_ADDR as Hex);
-  const quote = await quoteLaunch(network, account.address, i.tier, referrer);
+  const referrer = (await preferSavedReferrer(network, account.address, i.referrer)) as Hex | null;
+  const referrerArg = referrer ?? (ZERO_ADDR as Hex);
+  const quote = await quoteLaunch(network, account.address, i.tier, referrerArg);
   const value = quote.userPays;
 
   const currentAllowance = (await publicClient.readContract({
@@ -687,7 +760,7 @@ export async function createPool(
           i.fundingAmount,
           i.minStake,
           i.tier,
-          referrer,
+          referrerArg,
         ],
         value,
       })
